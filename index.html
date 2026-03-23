@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Burger Singh · Attach Rate Intelligence (Gemini)</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f5f2eb;
+  --bg2: #ede9df;
+  --surface: #ffffff;
+  --surface2: #faf8f3;
+  --border: #d8d0bc;
+  --border2: #c8bfa8;
+  --ink: #1a1714;
+  --ink2: #4a4540;
+  --ink3: #8a8078;
+  --accent: #c8410a;
+  --accent2: #e8651a;
+  --accent3: #f0a060;
+  --green: #2d7a4a;
+  --red: #c0392b;
+  --blue: #1a5a8a;
+  --yellow: #c8920a;
+  --mono: 'JetBrains Mono', monospace;
+  --body: 'Barlow', sans-serif;
+  --display: 'Barlow Condensed', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  min-height: 100vh;
+}
+
+/* Noise texture */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.4;
+}
+
+/* ─── HEADER ─────────────────────────────────────── */
+header {
+  background: var(--ink);
+  color: var(--bg);
+  padding: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 3px solid var(--accent);
+}
+
+.header-inner {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.header-brand {
+  padding: 14px 24px;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.header-brand h1 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.header-brand h1 span { color: var(--accent2); }
+
+.header-brand p {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.header-nav {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  padding: 0 16px;
+  gap: 4px;
+}
+
+.nav-tab {
+  padding: 8px 16px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.nav-tab:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.07); }
+.nav-tab.active { color: var(--accent2); background: rgba(200,65,10,0.15); }
+
+.header-api {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-left: 1px solid rgba(255,255,255,0.1);
+}
+
+.api-input-sm {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 5px;
+  padding: 6px 10px;
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 11px;
+  width: 200px;
+  outline: none;
+}
+.api-input-sm::placeholder { color: rgba(255,255,255,0.3); }
+.api-input-sm:focus { border-color: var(--accent2); }
+
+.btn-sm {
+  padding: 6px 14px;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-connect { background: var(--accent); color: #fff; }
+.btn-connect:hover { background: var(--accent2); }
+.btn-connect.connected { background: var(--green); }
+
+.api-status {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.api-status.ok { color: #4ade80; }
+.api-status.no { color: rgba(255,255,255,0.3); }
+
+/* ─── TOOLBAR ─────────────────────────────────────── */
+.toolbar {
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+  padding: 10px 24px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.toolbar-upload {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-btn {
+  padding: 7px 16px;
+  background: var(--ink);
+  color: var(--bg);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.upload-btn:hover { background: var(--accent); }
+
+.file-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink3);
+  background: var(--bg2);
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+.file-badge.loaded { color: var(--green); border-color: var(--green); background: rgba(45,122,74,0.07); }
+
+.toolbar-sep { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-lbl {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--ink3);
+  white-space: nowrap;
+}
+
+select {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  padding: 5px 10px;
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+select:focus { border-color: var(--accent); }
+
+.run-analysis-btn {
+  margin-left: auto;
+  padding: 8px 22px;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.run-analysis-btn:hover { background: var(--accent2); transform: translateY(-1px); }
+.run-analysis-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+/* ─── MAIN ─────────────────────────────────────────── */
+.main-content {
+  padding: 20px 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ─── TABS CONTENT ─────────────────────────────────── */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ─── EMPTY STATE ──────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+  gap: 14px;
+  opacity: 0.55;
+}
+
+.empty-icon {
+  font-size: 52px;
+  filter: grayscale(0.3);
+}
+
+.empty-state h2 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--ink);
+}
+
+.empty-state p {
+  font-size: 14px;
+  color: var(--ink3);
+  max-width: 380px;
+  line-height: 1.6;
+}
+
+/* ─── KPI ROW ─────────────────────────────────────── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+}
+.kpi-card.c1::after { background: var(--accent); }
+.kpi-card.c2::after { background: var(--green); }
+.kpi-card.c3::after { background: var(--blue); }
+.kpi-card.c4::after { background: var(--yellow); }
+.kpi-card.c5::after { background: #9b59b6; }
+.kpi-card.c6::after { background: var(--red); }
+
+.kpi-lbl {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--ink3);
+  margin-bottom: 6px;
+}
+
+.kpi-val {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 26px;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.kpi-sub {
+  font-size: 11px;
+  color: var(--ink3);
+  margin-top: 4px;
+}
+
+/* ─── GRID LAYOUTS ─────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 16px; }
+.grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+.full-width { margin-bottom: 16px; }
+
+/* ─── PANEL ─────────────────────────────────────────── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.panel-head {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+}
+
+.panel-head h3 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+.panel-badge {
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--bg2);
+  color: var(--ink3);
+  border: 1px solid var(--border);
+}
+
+.panel-body { padding: 16px; }
+
+/* ─── ATTACH RATE BAR ─────────────────────────────── */
+.attach-list { display: flex; flex-direction: column; gap: 8px; }
+
+.attach-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attach-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.attach-name {
+  flex: 1;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.attach-pct {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  width: 44px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.attach-count {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink3);
+  width: 50px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.attach-bar-wrap {
+  height: 5px;
+  background: var(--bg2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.attach-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+/* ─── TABLE ─────────────────────────────────────────── */
+.tbl-wrap { overflow-x: auto; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+
+th {
+  background: var(--bg2);
+  padding: 8px 12px;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--ink3);
+  white-space: nowrap;
+  border-bottom: 2px solid var(--border2);
+}
+
+td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+tr:hover td { background: rgba(0,0,0,0.02); }
+tr:last-child td { border-bottom: none; }
+
+.pct-cell {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.pct-high { color: var(--green); }
+.pct-mid { color: var(--yellow); }
+.pct-low { color: var(--red); }
+
+.mini-bar {
+  display: inline-block;
+  height: 4px;
+  border-radius: 2px;
+  margin-left: 6px;
+  vertical-align: middle;
+  background: var(--accent);
+}
+
+/* ─── ANOMALY CARDS ─────────────────────────────────── */
+.anomaly-list { display: flex; flex-direction: column; gap: 8px; }
+
+.anomaly-card {
+  border-radius: 7px;
+  padding: 12px 14px;
+  border-left: 3px solid;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.anomaly-card.spike {
+  background: rgba(45,122,74,0.08);
+  border-color: var(--green);
+}
+.anomaly-card.drop {
+  background: rgba(192,57,43,0.08);
+  border-color: var(--red);
+}
+.anomaly-card.warn {
+  background: rgba(200,146,10,0.08);
+  border-color: var(--yellow);
+}
+
+.anomaly-head {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 3px;
+}
+
+.anomaly-card.spike .anomaly-head { color: var(--green); }
+.anomaly-card.drop .anomaly-head { color: var(--red); }
+.anomaly-card.warn .anomaly-head { color: var(--yellow); }
+
+.anomaly-body { color: var(--ink2); font-size: 12px; }
+
+/* ─── AI BLOCK ─────────────────────────────────────── */
+.ai-narrative {
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.ai-narrative-head {
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-narrative-head h3 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+.ai-badge-dark {
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: rgba(200,65,10,0.3);
+  color: var(--accent3);
+  border: 1px solid rgba(200,65,10,0.4);
+}
+
+.ai-narrative-body {
+  padding: 18px;
+  font-size: 13.5px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  font-family: var(--body);
+  font-weight: 400;
+}
+
+.thinking-dark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+}
+
+.dot-pulse { display: flex; gap: 4px; }
+.dot-pulse span {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--accent2);
+  animation: dp 1.2s ease-in-out infinite;
+}
+.dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+.dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dp { 0%,80%,100% { transform:scale(0.5);opacity:0.3; } 40% { transform:scale(1);opacity:1; } }
+
+/* ─── CHART ─────────────────────────────────────────── */
+.chart-wrap { position: relative; height: 240px; }
+.chart-wrap-lg { position: relative; height: 300px; }
+.chart-wrap-sm { position: relative; height: 180px; }
+
+/* ─── HEATMAP ─────────────────────────────────────── */
+.heatmap-wrap { overflow-x: auto; }
+.heatmap { border-collapse: collapse; font-size: 11px; width: 100%; }
+.heatmap th { background: var(--bg2); padding: 6px 10px; font-family: var(--mono); font-size: 9px; text-transform: uppercase; color: var(--ink3); }
+.heatmap td { padding: 5px 8px; text-align: center; font-family: var(--mono); font-size: 10px; color: var(--ink); border: 1px solid var(--border); }
+.heatmap .row-lbl { text-align: left; font-size: 11px; font-family: var(--body); color: var(--ink2); white-space: nowrap; padding: 5px 10px; }
+
+/* ─── PROGRESS ───────────────────────────────────── */
+.progress-wrap {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-family: var(--mono);
+  font-size: 12px;
+  z-index: 500;
+  display: none;
+  gap: 10px;
+  align-items: center;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+.progress-wrap.visible { display: flex; }
+
+/* ─── ERROR ─────────────────────────────────────── */
+.err-toast {
+  position: fixed;
+  bottom: 24px; left: 24px;
+  background: #c0392b;
+  color: #fff;
+  border-radius: 8px;
+  padding: 12px 18px;
+  font-size: 13px;
+  z-index: 600;
+  display: none;
+  max-width: 400px;
+}
+.err-toast.visible { display: block; }
+
+/* ─── STORE/CHANNEL MATRIX ───────────────────────── */
+.matrix-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.mtab {
+  padding: 5px 14px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--ink3);
+  transition: all 0.13s;
+}
+.mtab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+@media (max-width: 1100px) {
+  .kpi-row { grid-template-columns: repeat(3, 1fr); }
+  .grid-2, .grid-1-2, .grid-2-1 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="header-brand">
+      <h1>Burger <span>Singh</span></h1>
+      <p>Attach Rate Intelligence</p>
+    </div>
+    <nav class="header-nav">
+      <div class="nav-tab active" onclick="switchTab('overview')">Overview</div>
+      <div class="nav-tab" onclick="switchTab('attach')">Attach Rates</div>
+      <div class="nav-tab" onclick="switchTab('trends')">Weekly Trends</div>
+      <div class="nav-tab" onclick="switchTab('menumix')">Menu Mix</div>
+      <div class="nav-tab" onclick="switchTab('anomalies')">Anomalies</div>
+      <div class="nav-tab" onclick="switchTab('ai')">AI Analysis</div>
+    </nav>
+    <div class="header-api">
+      <input type="password" class="api-input-sm" id="apiKey" placeholder="AIza... (Google AI Studio)" />
+      <button class="btn-sm btn-connect" id="connectBtn" onclick="connectApi()">Connect</button>
+      <span class="api-status no" id="apiStatus">●  No key</span>
+    </div>
+  </div>
+</header>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="toolbar-upload">
+    <button class="upload-btn" onclick="document.getElementById('fileIn').click()">⬆ Upload CSV / Excel</button>
+    <span class="file-badge" id="fileBadge">No file loaded</span>
+    <input type="file" id="fileIn" accept=".csv,.xlsx,.xls" style="display:none" onchange="loadFile(event)">
+  </div>
+  <div class="toolbar-sep"></div>
+  <div class="filter-group">
+    <span class="filter-lbl">Store</span>
+    <select id="fStore" onchange="applyFilters()"></select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-lbl">Channel</span>
+    <select id="fChannel" onchange="applyFilters()"></select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-lbl">Period</span>
+    <select id="fPeriod" onchange="applyFilters()"></select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-lbl">Status</span>
+    <select id="fStatus" onchange="applyFilters()"><option value="all">All (incl. cancelled)</option><option value="valid" selected>Valid Sales Only</option></select>
+  </div>
+  <button class="run-analysis-btn" id="runBtn" onclick="runAI()" disabled>▶ Run AI Analysis</button>
+</div>
+
+<!-- MAIN -->
+<div class="main-content">
+
+  <!-- OVERVIEW TAB -->
+  <div class="tab-content active" id="tab-overview">
+    <div class="empty-state" id="overviewEmpty">
+      <div class="empty-icon">🍔</div>
+      <h2>Upload your Rista export to begin</h2>
+      <p>CSV or Excel from Google Sheets. The engine will compute attach rates, trends, and anomalies automatically.</p>
+    </div>
+    <div id="overviewContent" style="display:none">
+      <div class="kpi-row" id="kpiRow"></div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><h3>📦 Category Attach Rates</h3><span class="panel-badge" id="totalOrdersBadge">—</span></div>
+          <div class="panel-body"><div class="attach-list" id="catAttachList"></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>📡 Revenue by Channel</h3></div>
+          <div class="panel-body"><div class="chart-wrap"><canvas id="channelChart"></canvas></div></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><h3>🏪 Attach Rate by Store</h3></div>
+          <div class="panel-body"><div class="tbl-wrap"><table id="storeAttachTable"><thead></thead><tbody></tbody></table></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>📊 Weekly Revenue Trend</h3></div>
+          <div class="panel-body"><div class="chart-wrap"><canvas id="overviewTrendChart"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATTACH TAB -->
+  <div class="tab-content" id="tab-attach">
+    <div class="empty-state" id="attachEmpty">
+      <div class="empty-icon">🔗</div>
+      <h2>No data loaded yet</h2>
+      <p>Upload a file to see item-level attach rates by category.</p>
+    </div>
+    <div id="attachContent" style="display:none">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><h3>🥤 Beverage Attach Rates</h3><span class="panel-badge" id="bevOrdersBadge">—</span></div>
+          <div class="panel-body"><div class="attach-list" id="bevAttachList"></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>🍔 Burger / Main Attach Rates</h3></div>
+          <div class="panel-body"><div class="attach-list" id="burgerAttachList"></div></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><h3>🍟 Sides Attach Rates</h3></div>
+          <div class="panel-body"><div class="attach-list" id="sidesAttachList"></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>🎁 Combo Attach Rates</h3></div>
+          <div class="panel-body"><div class="attach-list" id="comboAttachList"></div></div>
+        </div>
+      </div>
+      <div class="full-width panel">
+        <div class="panel-head"><h3>📋 All Items — Full Attach Rate Table</h3></div>
+        <div class="panel-body"><div class="tbl-wrap"><table id="fullAttachTable"><thead></thead><tbody></tbody></table></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRENDS TAB -->
+  <div class="tab-content" id="tab-trends">
+    <div class="empty-state" id="trendsEmpty">
+      <div class="empty-icon">📈</div>
+      <h2>No data loaded yet</h2>
+    </div>
+    <div id="trendsContent" style="display:none">
+      <div class="full-width panel">
+        <div class="panel-head">
+          <h3>📈 Weekly Attach Rate Trends by Category</h3>
+          <span class="panel-badge">All Categories</span>
+        </div>
+        <div class="panel-body"><div class="chart-wrap-lg"><canvas id="attachTrendChart"></canvas></div></div>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><h3>🥤 Beverage Attach — Weekly</h3></div>
+          <div class="panel-body"><div class="chart-wrap"><canvas id="bevTrendChart"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>🍟 Sides Attach — Weekly</h3></div>
+          <div class="panel-body"><div class="chart-wrap"><canvas id="sidesTrendChart"></canvas></div></div>
+        </div>
+      </div>
+      <div class="full-width panel">
+        <div class="panel-head"><h3>🏪 Store vs Store — Weekly Attach Trend (Beverages)</h3></div>
+        <div class="panel-body"><div class="chart-wrap-lg"><canvas id="storesTrendChart"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MENU MIX TAB -->
+  <div class="tab-content" id="tab-menumix">
+    <div class="empty-state" id="menumixEmpty">
+      <div class="empty-icon">🗂️</div>
+      <h2>No data loaded yet</h2>
+    </div>
+    <div id="menumixContent" style="display:none">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><h3>🗂️ Category Revenue Mix</h3></div>
+          <div class="panel-body"><div class="chart-wrap"><canvas id="catMixChart"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>📊 Category Qty Mix</h3></div>
+          <div class="panel-body"><div class="chart-wrap"><canvas id="catQtyMixChart"></canvas></div></div>
+        </div>
+      </div>
+      <div class="full-width panel">
+        <div class="panel-head"><h3>📅 Menu Mix Shift — Weekly (Revenue %)</h3></div>
+        <div class="panel-body"><div class="chart-wrap-lg"><canvas id="mixShiftChart"></canvas></div></div>
+      </div>
+      <div class="full-width panel">
+        <div class="panel-head"><h3>🏪 Store × Category Heatmap (Attach Rate %)</h3></div>
+        <div class="panel-body"><div class="heatmap-wrap" id="storeHeatmap"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANOMALIES TAB -->
+  <div class="tab-content" id="tab-anomalies">
+    <div class="empty-state" id="anomaliesEmpty">
+      <div class="empty-icon">⚠️</div>
+      <h2>No data loaded yet</h2>
+    </div>
+    <div id="anomaliesContent" style="display:none">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><h3>⚠️ Detected Anomalies</h3><span class="panel-badge" id="anomalyCount">0</span></div>
+          <div class="panel-body"><div class="anomaly-list" id="anomalyList"></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>📉 Attach Rate Deviation Chart</h3></div>
+          <div class="panel-body"><div class="chart-wrap"><canvas id="anomalyChart"></canvas></div></div>
+        </div>
+      </div>
+      <div class="full-width panel">
+        <div class="panel-head"><h3>📊 Weekly Z-Score Heatmap (Attach Rate)</h3></div>
+        <div class="panel-body"><div class="heatmap-wrap" id="zHeatmap"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI TAB -->
+  <div class="tab-content" id="tab-ai">
+    <div class="empty-state" id="aiEmpty">
+      <div class="empty-icon">🤖</div>
+      <h2>Run AI Analysis to see insights</h2>
+      <p>Load your data, then click "Run AI Analysis" — Claude will narrate findings on attach rates, trends, anomalies, and give actionable recommendations.</p>
+    </div>
+    <div id="aiContent" style="display:none">
+      <div class="ai-narrative">
+        <div class="ai-narrative-head">
+          <span>🤖</span>
+          <h3>Claude's Attach Rate Briefing</h3>
+          <span class="ai-badge-dark">Gemini 2.0 Flash · Free</span>
+        </div>
+        <div class="ai-narrative-body" id="aiOutput">
+          <div class="thinking-dark"><div class="dot-pulse"><span></span><span></span><span></span></div>&nbsp;Analyzing attach rates & anomalies...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- PROGRESS TOAST -->
+<div class="progress-wrap" id="progressToast">
+  <div class="dot-pulse"><span></span><span></span><span></span></div>
+  <span id="progressMsg">Loading...</span>
+</div>
+
+<!-- ERROR TOAST -->
+<div class="err-toast" id="errToast"></div>
+
+<script>
+// ════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════
+let rawData = [], filteredData = [];
+let computed = null;
+let apiKey = '';
+let charts = {};
+let activeTab = 'overview';
+
+// ════════════════════════════════════════════════════
+// UI HELPERS
+// ════════════════════════════════════════════════════
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.nav-tab').forEach((el, i) => {
+    const tabs = ['overview','attach','trends','menumix','anomalies','ai'];
+    el.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+function showProgress(msg) {
+  document.getElementById('progressToast').classList.add('visible');
+  document.getElementById('progressMsg').textContent = msg;
+}
+function hideProgress() { document.getElementById('progressToast').classList.remove('visible'); }
+
+function showErr(msg) {
+  const el = document.getElementById('errToast');
+  el.textContent = msg;
+  el.classList.add('visible');
+  setTimeout(() => el.classList.remove('visible'), 5000);
+}
+
+function connectApi() {
+  const v = document.getElementById('apiKey').value.trim();
+  if (!v.startsWith('AIza')) { showErr('Invalid key — Gemini keys start with AIza. Get one free at aistudio.google.com'); return; }
+  apiKey = v;
+  document.getElementById('connectBtn').textContent = '✓ Connected';
+  document.getElementById('connectBtn').classList.add('connected');
+  document.getElementById('apiStatus').textContent = '●  Connected';
+  document.getElementById('apiStatus').className = 'api-status ok';
+  updateRunBtn();
+}
+
+function updateRunBtn() {
+  document.getElementById('runBtn').disabled = !(apiKey && computed);
+}
+
+function pct(n, total) { return total > 0 ? (n / total * 100) : 0; }
+function fmt(n) {
+  if (n >= 1e7) return (n/1e7).toFixed(1)+'Cr';
+  if (n >= 1e5) return (n/1e5).toFixed(1)+'L';
+  if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
+  return Math.round(n).toLocaleString();
+}
+
+function colorForPct(p) {
+  if (p >= 40) return '#2d7a4a';
+  if (p >= 20) return '#c8920a';
+  return '#c0392b';
+}
+
+function attachColor(i, alpha=1) {
+  const palette = ['#c8410a','#2d7a4a','#1a5a8a','#9b59b6','#c8920a','#e8651a','#16a085','#8e44ad'];
+  const c = palette[i % palette.length];
+  if (alpha === 1) return c;
+  // hex to rgba
+  const r = parseInt(c.slice(1,3),16), g = parseInt(c.slice(3,5),16), b = parseInt(c.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+// ════════════════════════════════════════════════════
+// FILE LOADING
+// ════════════════════════════════════════════════════
+function loadFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  showProgress('Reading file...');
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'csv') {
+    Papa.parse(file, {
+      header: true, skipEmptyLines: true,
+      complete: r => { ingestData(r.data, file.name); },
+      error: err => { hideProgress(); showErr('CSV error: ' + err.message); }
+    });
+  } else {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const wb = XLSX.read(ev.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      ingestData(XLSX.utils.sheet_to_json(ws, { defval: '' }), file.name);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function ingestData(data, fname) {
+  showProgress('Processing ' + data.length.toLocaleString() + ' rows...');
+  setTimeout(() => {
+    // Normalize keys
+    rawData = data.map(row => {
+      const n = {};
+      for (let k in row) n[k.trim().toUpperCase().replace(/\s+/g,'_')] = String(row[k]).trim();
+      return n;
+    });
+
+    // Enrich
+    rawData.forEach(r => {
+      r._date = r.BUSINESS_DATE || r.INVOICE_DATE || '';
+      r._week = getWeekKey(r._date);
+      r._month = getMonthKey(r._date);
+      r._branch = r.BRANCH_NAME || r.BRANCH_CODE || 'Unknown';
+      r._channel = r.CHANNEL || r.ORDER_SOURCE || 'Unknown';
+      r._category = (r.CATEGORY || 'Uncategorised').trim();
+      r._subcategory = (r.SUBCATEGORY || '').trim();
+      r._item = (r.ITEM_NAME || r.SKU || 'Unknown').trim();
+      r._invoice = r.INVOICE_NUMBER || r.TICKET_NUMBER || '';
+      r._qty = parseFloat(r.SALE_ITEM_QTY || r.ORIGINAL_QTY || 0);
+      r._net = parseFloat(r.NET_AMOUNT || 0);
+      r._gross = parseFloat(r.GROSS_AMOUNT || 0);
+      r._disc = parseFloat(r.DISCOUNTS || 0);
+      r._status = (r.SALE_STATUS || '').toUpperCase();
+      r._isValid = !['CANCELLED','VOID','NON_CHARGEABLE'].includes(r._status);
+    });
+
+    buildFilterOptions();
+    filteredData = filterData();
+    computed = compute(filteredData);
+
+    document.getElementById('fileBadge').textContent = fname + ' · ' + rawData.length.toLocaleString() + ' rows';
+    document.getElementById('fileBadge').className = 'file-badge loaded';
+
+    renderAll();
+    hideProgress();
+    updateRunBtn();
+  }, 50);
+}
+
+function getWeekKey(dateStr) {
+  if (!dateStr) return 'Unknown';
+  const d = parseDate(dateStr);
+  if (!d) return 'Unknown';
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  return d.getFullYear() + '-W' + String(week).padStart(2, '0');
+}
+
+function getMonthKey(dateStr) {
+  if (!dateStr) return 'Unknown';
+  const d = parseDate(dateStr);
+  if (!d) return 'Unknown';
+  return d.toLocaleString('default', { month: 'short', year: 'numeric' });
+}
+
+function parseDate(s) {
+  if (!s) return null;
+  let d = new Date(s);
+  if (!isNaN(d)) return d;
+  // DD-MM-YYYY
+  const m = String(s).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) { d = new Date(`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`); if (!isNaN(d)) return d; }
+  return null;
+}
+
+// ════════════════════════════════════════════════════
+// FILTERS
+// ════════════════════════════════════════════════════
+function buildFilterOptions() {
+  const branches = ['All Stores', ...new Set(rawData.map(r => r._branch))].filter(Boolean).sort();
+  const channels = ['All Channels', ...new Set(rawData.map(r => r._channel))].filter(Boolean).sort();
+  const weeks = [...new Set(rawData.map(r => r._week))].filter(w => w !== 'Unknown').sort();
+  const periods = ['All Time', ...weeks.slice(-12)];
+
+  setSelect('fStore', branches);
+  setSelect('fChannel', channels);
+  setSelect('fPeriod', periods);
+}
+
+function setSelect(id, options) {
+  const el = document.getElementById(id);
+  el.innerHTML = options.map(o => `<option value="${o}">${o}</option>`).join('');
+}
+
+function filterData() {
+  const store = document.getElementById('fStore').value;
+  const channel = document.getElementById('fChannel').value;
+  const period = document.getElementById('fPeriod').value;
+  const status = document.getElementById('fStatus').value;
+
+  return rawData.filter(r => {
+    if (store !== 'All Stores' && r._branch !== store) return false;
+    if (channel !== 'All Channels' && r._channel !== channel) return false;
+    if (period !== 'All Time' && r._week !== period) return false;
+    if (status === 'valid' && !r._isValid) return false;
+    return true;
+  });
+}
+
+function applyFilters() {
+  if (!rawData.length) return;
+  filteredData = filterData();
+  computed = compute(filteredData);
+  renderAll();
+}
+
+// ════════════════════════════════════════════════════
+// COMPUTE ENGINE
+// ════════════════════════════════════════════════════
+function compute(data) {
+  // Group rows by invoice → orders
+  const invoiceMap = {};
+  data.forEach(r => {
+    if (!r._invoice) return;
+    if (!invoiceMap[r._invoice]) invoiceMap[r._invoice] = { rows: [], branch: r._branch, channel: r._channel, week: r._week, month: r._month, net: 0 };
+    invoiceMap[r._invoice].rows.push(r);
+    invoiceMap[r._invoice].net += r._net;
+  });
+
+  const orders = Object.values(invoiceMap);
+  const totalOrders = orders.length;
+
+  // Detect categories dynamically
+  const allCats = [...new Set(data.map(r => r._category))].filter(Boolean).sort();
+
+  // Detect combos: CATEGORY contains 'combo' or 'meal' OR item name contains those
+  const isCombo = r => /combo|meal|deal|set/i.test(r._category + ' ' + r._item);
+
+  // Detect beverages
+  const isBev = r => /bev|drink|shake|juice|cold|hot|coke|pepsi|water|lassi|smoothie|tea|coffee|soda|mocktail/i.test(r._category + ' ' + r._item);
+
+  // Detect burgers/mains
+  const isBurger = r => /burger|wrap|sandwich|roll|main|grill/i.test(r._category + ' ' + r._item);
+
+  // Detect sides
+  const isSide = r => /side|fries|nugget|rings|salad|add.on|extra/i.test(r._category + ' ' + r._item);
+
+  // Category attach rates
+  const catAttach = {};
+  allCats.forEach(cat => {
+    const ordersWithCat = orders.filter(o => o.rows.some(r => r._category === cat));
+    catAttach[cat] = { count: ordersWithCat.length, pct: pct(ordersWithCat.length, totalOrders) };
+  });
+
+  // Item attach rates per category
+  function itemAttachForFilter(filterFn) {
+    const itemMap = {};
+    data.filter(filterFn).forEach(r => {
+      if (!itemMap[r._item]) itemMap[r._item] = new Set();
+      itemMap[r._item].add(r._invoice);
+    });
+    return Object.entries(itemMap).map(([item, invoices]) => ({
+      item, count: invoices.size, pct: pct(invoices.size, totalOrders)
+    })).sort((a,b) => b.pct - a.pct);
+  }
+
+  const bevItems = itemAttachForFilter(isBev);
+  const burgerItems = itemAttachForFilter(isBurger);
+  const sideItems = itemAttachForFilter(isSide);
+  const comboItems = itemAttachForFilter(isCombo);
+
+  // Overall combo/bev attach
+  const ordersWithBev = orders.filter(o => o.rows.some(isBev)).length;
+  const ordersWithCombo = orders.filter(o => o.rows.some(isCombo)).length;
+  const ordersWithSides = orders.filter(o => o.rows.some(isSide)).length;
+
+  // Revenue & KPIs
+  const totalNet = data.reduce((s,r) => s + r._net, 0);
+  const totalQty = data.reduce((s,r) => s + r._qty, 0);
+  const totalDisc = data.reduce((s,r) => s + r._disc, 0);
+  const avgNet = totalOrders > 0 ? totalNet / totalOrders : 0;
+
+  // Store breakdown
+  const stores = [...new Set(data.map(r => r._branch))].sort();
+  const storeData = stores.map(br => {
+    const sOrders = orders.filter(o => o.branch === br);
+    const sTotal = sOrders.length;
+    const bevAtt = pct(sOrders.filter(o => o.rows.some(isBev)).length, sTotal);
+    const sideAtt = pct(sOrders.filter(o => o.rows.some(isSide)).length, sTotal);
+    const comboAtt = pct(sOrders.filter(o => o.rows.some(isCombo)).length, sTotal);
+    const rev = sOrders.reduce((s,o) => s + o.net, 0);
+    return { br, total: sTotal, bevAtt, sideAtt, comboAtt, rev };
+  });
+
+  // Channel breakdown
+  const channels = [...new Set(data.map(r => r._channel))].sort();
+  const channelData = channels.map(ch => {
+    const cRows = data.filter(r => r._channel === ch);
+    const cInvoices = new Set(cRows.map(r => r._invoice));
+    const cOrders = orders.filter(o => o.channel === ch);
+    const rev = cRows.reduce((s,r) => s + r._net, 0);
+    return { ch, orders: cOrders.length, rev, pct: pct(rev, totalNet) };
+  }).sort((a,b) => b.rev - a.rev);
+
+  // Weekly trends
+  const weeks = [...new Set(data.map(r => r._week))].filter(w => w !== 'Unknown').sort();
+  const weeklyData = weeks.map(week => {
+    const wOrders = orders.filter(o => o.week === week);
+    const wTotal = wOrders.length;
+    const wNet = wOrders.reduce((s,o) => s + o.net, 0);
+    const catPcts = {};
+    allCats.forEach(cat => {
+      catPcts[cat] = pct(wOrders.filter(o => o.rows.some(r => r._category === cat)).length, wTotal);
+    });
+    return {
+      week, totalOrders: wTotal, revenue: wNet,
+      bevAttach: pct(wOrders.filter(o => o.rows.some(isBev)).length, wTotal),
+      sidesAttach: pct(wOrders.filter(o => o.rows.some(isSide)).length, wTotal),
+      comboAttach: pct(wOrders.filter(o => o.rows.some(isCombo)).length, wTotal),
+      catPcts
+    };
+  });
+
+  // Store × week trends for beverages
+  const storeWeekBev = {};
+  stores.forEach(br => {
+    storeWeekBev[br] = weeks.map(week => {
+      const wOrders = orders.filter(o => o.week === week && o.branch === br);
+      const wTotal = wOrders.length;
+      return pct(wOrders.filter(o => o.rows.some(isBev)).length, wTotal);
+    });
+  });
+
+  // Menu mix by week (revenue %)
+  const weeklyMix = weeks.map(week => {
+    const wRows = data.filter(r => r._week === week);
+    const wNet = wRows.reduce((s,r) => s + r._net, 0);
+    const catRevs = {};
+    allCats.forEach(cat => {
+      catRevs[cat] = pct(wRows.filter(r => r._category === cat).reduce((s,r) => s + r._net, 0), wNet);
+    });
+    return { week, catRevs };
+  });
+
+  // Store × Category heatmap
+  const storeCatHeatmap = {};
+  stores.forEach(br => {
+    storeCatHeatmap[br] = {};
+    const brOrders = orders.filter(o => o.branch === br);
+    allCats.forEach(cat => {
+      storeCatHeatmap[br][cat] = pct(brOrders.filter(o => o.rows.some(r => r._category === cat)).length, brOrders.length);
+    });
+  });
+
+  // Anomaly detection (z-score on weekly attach rates)
+  const anomalies = [];
+  const metrics = [
+    { key: 'bevAttach', label: 'Beverage Attach' },
+    { key: 'sidesAttach', label: 'Sides Attach' },
+    { key: 'comboAttach', label: 'Combo Attach' },
+    { key: 'totalOrders', label: 'Order Volume' }
+  ];
+
+  metrics.forEach(({ key, label }) => {
+    const vals = weeklyData.map(w => w[key]);
+    if (vals.length < 3) return;
+    const mean = vals.reduce((s,v) => s+v, 0) / vals.length;
+    const std = Math.sqrt(vals.reduce((s,v) => s + Math.pow(v-mean,2), 0) / vals.length);
+    if (std < 0.5) return;
+    weeklyData.forEach(w => {
+      const z = std > 0 ? (w[key] - mean) / std : 0;
+      if (Math.abs(z) >= 1.8) {
+        anomalies.push({
+          week: w.week, metric: label,
+          value: w[key], mean, std, z,
+          type: z > 0 ? 'spike' : 'drop'
+        });
+      }
+    });
+  });
+
+  // Z-score heatmap data
+  const zData = {};
+  metrics.forEach(({ key, label }) => {
+    const vals = weeklyData.map(w => w[key]);
+    const mean = vals.reduce((s,v) => s+v, 0) / vals.length;
+    const std = Math.sqrt(vals.reduce((s,v) => s + Math.pow(v-mean,2), 0) / vals.length);
+    zData[label] = weeklyData.map(w => std > 0 ? +((w[key] - mean) / std).toFixed(2) : 0);
+  });
+
+  return {
+    totalOrders, totalNet, totalQty, totalDisc, avgNet,
+    ordersWithBev, ordersWithCombo, ordersWithSides,
+    bevAttachPct: pct(ordersWithBev, totalOrders),
+    comboAttachPct: pct(ordersWithCombo, totalOrders),
+    sidesAttachPct: pct(ordersWithSides, totalOrders),
+    catAttach, allCats, bevItems, burgerItems, sideItems, comboItems,
+    storeData, channelData, weeks, weeklyData, weeklyMix,
+    storeWeekBev, stores, storeCatHeatmap, anomalies, zData,
+    isBev, isSide, isCombo
+  };
+}
+
+// ════════════════════════════════════════════════════
+// RENDER ALL
+// ════════════════════════════════════════════════════
+function renderAll() {
+  const c = computed;
+  const has = c.totalOrders > 0;
+
+  // Show/hide empties
+  ['overview','attach','trends','menumix','anomalies'].forEach(t => {
+    document.getElementById(t + 'Empty').style.display = has ? 'none' : 'flex';
+    const el = document.getElementById(t + 'Content');
+    if (el) el.style.display = has ? 'block' : 'none';
+  });
+  if (!has) return;
+
+  renderKPIs(c);
+  renderCatAttach(c);
+  renderStoreAttachTable(c);
+  renderAttachTab(c);
+  renderChannelChart(c);
+  renderOverviewTrend(c);
+  renderTrendsTab(c);
+  renderMenuMixTab(c);
+  renderAnomaliesTab(c);
+}
+
+function renderKPIs(c) {
+  document.getElementById('kpiRow').innerHTML = `
+    <div class="kpi-card c1"><div class="kpi-lbl">Total Orders</div><div class="kpi-val">${c.totalOrders.toLocaleString()}</div><div class="kpi-sub">${c.weeks.length} weeks</div></div>
+    <div class="kpi-card c2"><div class="kpi-lbl">Bev Attach Rate</div><div class="kpi-val">${c.bevAttachPct.toFixed(1)}%</div><div class="kpi-sub">${c.ordersWithBev.toLocaleString()} orders</div></div>
+    <div class="kpi-card c3"><div class="kpi-lbl">Combo Attach Rate</div><div class="kpi-val">${c.comboAttachPct.toFixed(1)}%</div><div class="kpi-sub">${c.ordersWithCombo.toLocaleString()} orders</div></div>
+    <div class="kpi-card c4"><div class="kpi-lbl">Sides Attach Rate</div><div class="kpi-val">${c.sidesAttachPct.toFixed(1)}%</div><div class="kpi-sub">${c.ordersWithSides.toLocaleString()} orders</div></div>
+    <div class="kpi-card c5"><div class="kpi-lbl">Net Revenue</div><div class="kpi-val">₹${fmt(c.totalNet)}</div><div class="kpi-sub">AOV ₹${Math.round(c.avgNet)}</div></div>
+    <div class="kpi-card c6"><div class="kpi-lbl">Anomalies</div><div class="kpi-val">${c.anomalies.length}</div><div class="kpi-sub">detected this period</div></div>
+  `;
+  document.getElementById('totalOrdersBadge').textContent = c.totalOrders.toLocaleString() + ' orders';
+}
+
+function renderAttachBars(containerId, items, maxItems = 20, color = '#c8410a') {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const show = items.slice(0, maxItems);
+  const maxPct = show.length > 0 ? show[0].pct : 1;
+  el.innerHTML = show.map(it => `
+    <div class="attach-item">
+      <div class="attach-row">
+        <span class="attach-name" title="${it.item}">${it.item}</span>
+        <span class="attach-pct" style="color:${colorForPct(it.pct)}">${it.pct.toFixed(1)}%</span>
+        <span class="attach-count">${it.count.toLocaleString()}</span>
+      </div>
+      <div class="attach-bar-wrap">
+        <div class="attach-bar-fill" style="width:${(it.pct/maxPct*100)}%;background:${color}"></div>
+      </div>
+    </div>
+  `).join('') || '<div style="color:var(--ink3);font-size:12px;padding:8px 0">No items detected in this category. Check your CATEGORY column labels.</div>';
+}
+
+function renderCatAttach(c) {
+  const items = Object.entries(c.catAttach)
+    .map(([cat, v]) => ({ item: cat, ...v }))
+    .sort((a,b) => b.pct - a.pct);
+  renderAttachBars('catAttachList', items, 15, '#c8410a');
+}
+
+function renderAttachTab(c) {
+  renderAttachBars('bevAttachList', c.bevItems, 20, '#1a5a8a');
+  document.getElementById('bevOrdersBadge').textContent = c.bevAttachPct.toFixed(1) + '% attach';
+  renderAttachBars('burgerAttachList', c.burgerItems, 20, '#c8410a');
+  renderAttachBars('sidesAttachList', c.sideItems, 20, '#2d7a4a');
+  renderAttachBars('comboAttachList', c.comboItems, 20, '#9b59b6');
+
+  // Full table
+  const allItems = {};
+  filteredData.forEach(r => {
+    const k = r._item + '|||' + r._category;
+    if (!allItems[k]) allItems[k] = { item: r._item, cat: r._category, invoices: new Set(), qty: 0, rev: 0 };
+    allItems[k].invoices.add(r._invoice);
+    allItems[k].qty += r._qty;
+    allItems[k].rev += r._net;
+  });
+
+  const rows = Object.values(allItems)
+    .map(v => ({ ...v, attach: pct(v.invoices.size, c.totalOrders) }))
+    .sort((a,b) => b.attach - a.attach);
+
+  const thead = document.querySelector('#fullAttachTable thead');
+  const tbody = document.querySelector('#fullAttachTable tbody');
+  thead.innerHTML = '<tr><th>#</th><th>Item</th><th>Category</th><th>Attach Rate</th><th>Orders</th><th>Qty</th><th>Net Rev</th></tr>';
+  tbody.innerHTML = rows.map((r,i) => `
+    <tr>
+      <td style="color:var(--ink3);font-family:var(--mono);font-size:10px">${i+1}</td>
+      <td>${r.item}</td>
+      <td><span style="font-family:var(--mono);font-size:10px;background:var(--bg2);padding:2px 6px;border-radius:3px">${r.cat}</span></td>
+      <td>
+        <span class="pct-cell ${r.attach>=40?'pct-high':r.attach>=20?'pct-mid':'pct-low'}">${r.attach.toFixed(1)}%</span>
+        <span class="mini-bar" style="width:${Math.min(r.attach*2,100)}px"></span>
+      </td>
+      <td style="font-family:var(--mono);font-size:11px">${r.invoices.size.toLocaleString()}</td>
+      <td style="font-family:var(--mono);font-size:11px">${Math.round(r.qty).toLocaleString()}</td>
+      <td style="font-family:var(--mono);font-size:11px">₹${fmt(r.rev)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderStoreAttachTable(c) {
+  const thead = document.querySelector('#storeAttachTable thead');
+  const tbody = document.querySelector('#storeAttachTable tbody');
+  thead.innerHTML = '<tr><th>Store</th><th>Orders</th><th>Bev Attach</th><th>Sides Attach</th><th>Combo Attach</th><th>Revenue</th></tr>';
+  tbody.innerHTML = c.storeData.map(s => `
+    <tr>
+      <td>${s.br}</td>
+      <td style="font-family:var(--mono);font-size:11px">${s.total.toLocaleString()}</td>
+      <td><span class="pct-cell ${s.bevAtt>=40?'pct-high':s.bevAtt>=20?'pct-mid':'pct-low'}">${s.bevAtt.toFixed(1)}%</span></td>
+      <td><span class="pct-cell ${s.sideAtt>=40?'pct-high':s.sideAtt>=20?'pct-mid':'pct-low'}">${s.sideAtt.toFixed(1)}%</span></td>
+      <td><span class="pct-cell ${s.comboAtt>=40?'pct-high':s.comboAtt>=20?'pct-mid':'pct-low'}">${s.comboAtt.toFixed(1)}%</span></td>
+      <td style="font-family:var(--mono);font-size:11px">₹${fmt(s.rev)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderChannelChart(c) {
+  destroyChart('channelChart');
+  const ctx = document.getElementById('channelChart').getContext('2d');
+  charts['channelChart'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: c.channelData.map(ch => ch.ch),
+      datasets: [{ data: c.channelData.map(ch => ch.rev), backgroundColor: c.channelData.map((_,i) => attachColor(i,0.85)), borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { family: 'Barlow', size: 11 }, boxWidth: 12 } } } }
+  });
+}
+
+function renderOverviewTrend(c) {
+  destroyChart('overviewTrendChart');
+  const ctx = document.getElementById('overviewTrendChart').getContext('2d');
+  charts['overviewTrendChart'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: c.weeks,
+      datasets: [{
+        label: 'Net Revenue',
+        data: c.weeklyData.map(w => w.revenue),
+        borderColor: '#c8410a', backgroundColor: 'rgba(200,65,10,0.1)',
+        fill: true, tension: 0.35, pointRadius: 3
+      }]
+    },
+    options: lineOpts('₹', true)
+  });
+}
+
+function renderTrendsTab(c) {
+  // Multi-category attach trend
+  destroyChart('attachTrendChart');
+  const topCats = Object.entries(c.catAttach).sort((a,b) => b[1].pct - a[1].pct).slice(0,6).map(([cat]) => cat);
+  const ctx1 = document.getElementById('attachTrendChart').getContext('2d');
+  charts['attachTrendChart'] = new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels: c.weeks,
+      datasets: topCats.map((cat, i) => ({
+        label: cat,
+        data: c.weeklyData.map(w => w.catPcts[cat] || 0),
+        borderColor: attachColor(i), backgroundColor: attachColor(i, 0.08),
+        fill: false, tension: 0.35, pointRadius: 3, borderWidth: 2
+      }))
+    },
+    options: lineOpts('%')
+  });
+
+  // Bev weekly
+  destroyChart('bevTrendChart');
+  const ctx2 = document.getElementById('bevTrendChart').getContext('2d');
+  charts['bevTrendChart'] = new Chart(ctx2, {
+    type: 'line',
+    data: {
+      labels: c.weeks,
+      datasets: [{
+        label: 'Bev Attach %',
+        data: c.weeklyData.map(w => w.bevAttach),
+        borderColor: '#1a5a8a', backgroundColor: 'rgba(26,90,138,0.1)',
+        fill: true, tension: 0.35, pointRadius: 3
+      }]
+    },
+    options: lineOpts('%')
+  });
+
+  // Sides weekly
+  destroyChart('sidesTrendChart');
+  const ctx3 = document.getElementById('sidesTrendChart').getContext('2d');
+  charts['sidesTrendChart'] = new Chart(ctx3, {
+    type: 'line',
+    data: {
+      labels: c.weeks,
+      datasets: [{
+        label: 'Sides Attach %',
+        data: c.weeklyData.map(w => w.sidesAttach),
+        borderColor: '#2d7a4a', backgroundColor: 'rgba(45,122,74,0.1)',
+        fill: true, tension: 0.35, pointRadius: 3
+      }]
+    },
+    options: lineOpts('%')
+  });
+
+  // Store vs store bev trend
+  destroyChart('storesTrendChart');
+  const ctx4 = document.getElementById('storesTrendChart').getContext('2d');
+  charts['storesTrendChart'] = new Chart(ctx4, {
+    type: 'line',
+    data: {
+      labels: c.weeks,
+      datasets: c.stores.map((br, i) => ({
+        label: br,
+        data: c.storeWeekBev[br],
+        borderColor: attachColor(i), backgroundColor: 'transparent',
+        fill: false, tension: 0.35, pointRadius: 3, borderWidth: 2
+      }))
+    },
+    options: lineOpts('%')
+  });
+}
+
+function renderMenuMixTab(c) {
+  const topCats = Object.entries(c.catAttach).sort((a,b) => b[1].pct - a[1].pct).slice(0,8).map(([cat]) => cat);
+
+  // Category revenue pie
+  destroyChart('catMixChart');
+  const revByCat = topCats.map(cat => filteredData.filter(r => r._category === cat).reduce((s,r) => s + r._net, 0));
+  charts['catMixChart'] = new Chart(document.getElementById('catMixChart').getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: topCats,
+      datasets: [{ data: revByCat, backgroundColor: topCats.map((_,i) => attachColor(i,0.82)), borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { family: 'Barlow', size: 11 }, boxWidth: 12 } } } }
+  });
+
+  // Category qty pie
+  destroyChart('catQtyMixChart');
+  const qtyByCat = topCats.map(cat => filteredData.filter(r => r._category === cat).reduce((s,r) => s + r._qty, 0));
+  charts['catQtyMixChart'] = new Chart(document.getElementById('catQtyMixChart').getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: topCats,
+      datasets: [{ data: qtyByCat, backgroundColor: topCats.map((_,i) => attachColor(i,0.82)), borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { family: 'Barlow', size: 11 }, boxWidth: 12 } } } }
+  });
+
+  // Mix shift stacked bar
+  destroyChart('mixShiftChart');
+  charts['mixShiftChart'] = new Chart(document.getElementById('mixShiftChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: c.weeks,
+      datasets: topCats.map((cat, i) => ({
+        label: cat,
+        data: c.weeklyMix.map(w => +(w.catRevs[cat] || 0).toFixed(1)),
+        backgroundColor: attachColor(i, 0.8),
+        stack: 'mix'
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { family: 'Barlow', size: 10 }, boxWidth: 10 } } },
+      scales: {
+        x: { stacked: true, ticks: { font: { family: 'JetBrains Mono', size: 9 }, maxRotation: 45 }, grid: { display: false } },
+        y: { stacked: true, max: 100, ticks: { callback: v => v+'%', font: { family: 'JetBrains Mono', size: 9 } }, grid: { color: 'rgba(0,0,0,0.06)' } }
+      }
+    }
+  });
+
+  // Store × Category heatmap
+  renderHeatmap('storeHeatmap', c);
+}
+
+function renderHeatmap(containerId, c) {
+  const topCats = Object.entries(c.catAttach).sort((a,b) => b[1].pct - a[1].pct).slice(0,8).map(([cat]) => cat);
+  const el = document.getElementById(containerId);
+  const rows = c.stores.map(br => {
+    const cells = topCats.map(cat => {
+      const v = c.storeCatHeatmap[br][cat] || 0;
+      const intensity = Math.min(v / 80, 1);
+      const bg = `rgba(200,65,10,${intensity * 0.7})`;
+      const color = intensity > 0.5 ? '#fff' : '#1a1714';
+      return `<td style="background:${bg};color:${color}">${v.toFixed(0)}%</td>`;
+    }).join('');
+    return `<tr><td class="row-lbl">${br}</td>${cells}</tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <table class="heatmap">
+      <thead><tr><th>Store</th>${topCats.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function renderAnomaliesTab(c) {
+  document.getElementById('anomalyCount').textContent = c.anomalies.length;
+
+  const list = document.getElementById('anomalyList');
+  if (c.anomalies.length === 0) {
+    list.innerHTML = '<div style="color:var(--ink3);font-size:13px;padding:12px 0">✅ No significant anomalies detected in the current filtered period.</div>';
+  } else {
+    list.innerHTML = c.anomalies.map(a => `
+      <div class="anomaly-card ${a.type}">
+        <div class="anomaly-head">${a.type === 'spike' ? '↑ Spike' : '↓ Drop'} — ${a.metric} · ${a.week}</div>
+        <div class="anomaly-body">
+          Observed: <strong>${a.value.toFixed(1)}${a.metric.includes('Attach') ? '%' : ''}</strong> vs avg ${a.mean.toFixed(1)}${a.metric.includes('Attach') ? '%' : ''} (Z = ${a.z.toFixed(2)}, ${Math.abs(a.z).toFixed(1)}σ from mean)
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Anomaly chart — bev attach with mean ± 1σ bands
+  destroyChart('anomalyChart');
+  const bevVals = c.weeklyData.map(w => w.bevAttach);
+  const mean = bevVals.reduce((s,v) => s+v, 0) / bevVals.length;
+  const std = Math.sqrt(bevVals.reduce((s,v) => s + Math.pow(v-mean,2), 0) / bevVals.length);
+
+  charts['anomalyChart'] = new Chart(document.getElementById('anomalyChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: c.weeks,
+      datasets: [
+        { label: 'Bev Attach %', data: bevVals, borderColor: '#1a5a8a', backgroundColor: 'rgba(26,90,138,0.1)', fill: true, tension: 0.3, pointRadius: 4 },
+        { label: 'Mean', data: c.weeks.map(() => mean), borderColor: '#c8920a', borderDash: [6,3], pointRadius: 0, borderWidth: 1.5 },
+        { label: '+1σ', data: c.weeks.map(() => mean+std), borderColor: 'rgba(192,57,43,0.4)', borderDash: [3,3], pointRadius: 0, borderWidth: 1 },
+        { label: '-1σ', data: c.weeks.map(() => Math.max(0,mean-std)), borderColor: 'rgba(192,57,43,0.4)', borderDash: [3,3], pointRadius: 0, borderWidth: 1 }
+      ]
+    },
+    options: lineOpts('%')
+  });
+
+  // Z-score heatmap
+  renderZHeatmap('zHeatmap', c);
+}
+
+function renderZHeatmap(containerId, c) {
+  const el = document.getElementById(containerId);
+  const metrics = Object.keys(c.zData);
+  const rows = metrics.map(metric => {
+    const cells = c.zData[metric].map(z => {
+      const abs = Math.abs(z);
+      const color = z > 0 ? `rgba(45,122,74,${Math.min(abs/2,0.8)})` : `rgba(192,57,43,${Math.min(abs/2,0.8)})`;
+      const tc = abs > 1 ? '#fff' : '#1a1714';
+      return `<td style="background:${color};color:${tc}">${z.toFixed(1)}</td>`;
+    }).join('');
+    return `<tr><td class="row-lbl">${metric}</td>${cells}</tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <table class="heatmap">
+      <thead><tr><th>Metric</th>${c.weeks.map(w => `<th>${w}</th>`).join('')}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:8px;padding:0 4px">Green = above average · Red = below average · |Z| ≥ 1.8 flagged as anomaly</div>
+  `;
+}
+
+function lineOpts(unit='', currency=false) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { font: { family: 'Barlow', size: 10 }, boxWidth: 10 } } },
+    scales: {
+      x: { ticks: { font: { family: 'JetBrains Mono', size: 9 }, maxRotation: 45 }, grid: { display: false } },
+      y: { ticks: { callback: v => currency ? '₹'+fmt(v) : v.toFixed(1)+unit, font: { family: 'JetBrains Mono', size: 9 } }, grid: { color: 'rgba(0,0,0,0.06)' } }
+    }
+  };
+}
+
+// ════════════════════════════════════════════════════
+// AI ANALYSIS
+// ════════════════════════════════════════════════════
+async function runAI() {
+  if (!apiKey || !computed) return;
+  switchTab('ai');
+  document.getElementById('aiEmpty').style.display = 'none';
+  document.getElementById('aiContent').style.display = 'block';
+  document.getElementById('aiOutput').innerHTML = '<div class="thinking-dark"><div class="dot-pulse"><span></span><span></span><span></span></div>&nbsp;Gemini is reading your attach rate data...</div>';
+
+  const c = computed;
+  const topBevs = c.bevItems.slice(0,8).map(it => `${it.item}: ${it.pct.toFixed(1)}%`).join(', ');
+  const topSides = c.sideItems.slice(0,5).map(it => `${it.item}: ${it.pct.toFixed(1)}%`).join(', ');
+  const catSummary = Object.entries(c.catAttach).sort((a,b) => b[1].pct - a[1].pct).map(([cat,v]) => `${cat}: ${v.pct.toFixed(1)}%`).join('\n');
+  const storeSummary = c.storeData.map(s => `${s.br}: Bev ${s.bevAtt.toFixed(1)}%, Sides ${s.sideAtt.toFixed(1)}%, Combo ${s.comboAtt.toFixed(1)}%, Orders ${s.total}`).join('\n');
+  const anomSummary = c.anomalies.length > 0 ? c.anomalies.map(a => `${a.week} — ${a.type.toUpperCase()} in ${a.metric}: ${a.value.toFixed(1)} vs avg ${a.mean.toFixed(1)} (Z=${a.z.toFixed(2)})`).join('\n') : 'None detected.';
+  const weekTrend = c.weeklyData.slice(-8).map(w => `${w.week}: Bev ${w.bevAttach.toFixed(1)}%, Sides ${w.sidesAttach.toFixed(1)}%, Combo ${w.comboAttach.toFixed(1)}%, Orders ${w.totalOrders}`).join('\n');
+
+  const systemInstruction = `You are a sharp QSR operations analyst for Burger Singh, an Indian quick-service restaurant brand. Use ₹ for currency. Be specific with numbers. Format with clear emoji-headed sections. Write like a CoS briefing a founder — direct, no fluff.`;
+
+  const userPrompt = `Analyze this Burger Singh POS attach rate data and provide a structured briefing.
+
+SUMMARY STATS
+─────────────
+Total Orders: ${c.totalOrders.toLocaleString()}
+Net Revenue: ₹${fmt(c.totalNet)} | AOV: ₹${Math.round(c.avgNet)}
+Weeks of data: ${c.weeks.length}
+
+ATTACH RATES (overall)
+──────────────────────
+Beverage Attach: ${c.bevAttachPct.toFixed(1)}% (${c.ordersWithBev.toLocaleString()} orders)
+Combo Attach: ${c.comboAttachPct.toFixed(1)}% (${c.ordersWithCombo.toLocaleString()} orders)
+Sides Attach: ${c.sidesAttachPct.toFixed(1)}% (${c.ordersWithSides.toLocaleString()} orders)
+
+TOP BEVERAGES BY ATTACH RATE:
+${topBevs}
+
+TOP SIDES BY ATTACH RATE:
+${topSides}
+
+CATEGORY ATTACH RATES:
+${catSummary}
+
+STORE BREAKDOWN:
+${storeSummary}
+
+LAST 8 WEEKS TREND:
+${weekTrend}
+
+ANOMALIES DETECTED:
+${anomSummary}
+
+Provide a structured briefing with these sections:
+1. 🔑 Headline Numbers — what stands out most at a glance
+2. 🥤 Beverage Attach — how healthy is this? What's driving it? Which items lead?
+3. 🍟 Sides & Combo Attach — performance and gaps
+4. 🏪 Store Comparison — who's outperforming and why might that be?
+5. 📈 Trend Reading — what direction are attach rates moving? Any concern?
+6. ⚠️ Anomalies — interpret the flagged anomalies in plain language
+7. 💡 5 Specific Recommendations — prioritized actions for the CoS to drive attach rate improvement
+
+Keep it concise and punchy. Use numbers. No fluff.`;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemInstruction }] },
+          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+          generationConfig: { maxOutputTokens: 1800, temperature: 0.4 }
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    if (data.error) {
+      showErr('Gemini API Error: ' + data.error.message);
+      document.getElementById('aiOutput').textContent = 'Analysis failed. Check your API key at aistudio.google.com';
+      return;
+    }
+
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response received.';
+    document.getElementById('aiOutput').textContent = text;
+
+  } catch(err) {
+    showErr('Network error: ' + err.message);
+    document.getElementById('aiOutput').textContent = 'Could not connect to Gemini API.';
+  }
+}
+</script>
+</body>
+</html>

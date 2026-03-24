@@ -1,0 +1,2775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Burger Singh · POS Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#f4f1ea; --bg2:#ece8df; --surface:#fff; --surface2:#faf8f3;
+  --border:#d5ccb8; --border2:#c4b99e;
+  --ink:#1a1610; --ink2:#3d3828; --ink3:#8a7f68;
+  --accent:#c8380a; --accent2:#e85a1a; --accent3:#f0956a;
+  --green:#1e6e3a; --green2:#d4edda; --red:#b82a1e; --red2:#fde8e6;
+  --blue:#174f7a; --blue2:#dceaf5; --yellow:#9e6b00; --yellow2:#fef3cd;
+  --purple:#5a2d82; --purple2:#ede0f5;
+  --mono:'JetBrains Mono',monospace; --body:'Barlow',sans-serif; --display:'Barlow Condensed',sans-serif;
+  --radius:8px; --shadow:0 2px 8px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:100vh;font-size:14px}
+
+/* ── HEADER ── */
+.header{background:var(--ink);color:#fff;border-bottom:3px solid var(--accent);position:sticky;top:0;z-index:200}
+.header-inner{display:flex;align-items:stretch;max-width:100%;overflow:hidden}
+.brand{padding:10px 18px;border-right:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;justify-content:center;flex-shrink:0}
+.brand h1{font-family:var(--display);font-weight:800;font-size:18px;letter-spacing:.3px;text-transform:uppercase;line-height:1}
+.brand h1 em{color:var(--accent2);font-style:normal}
+.brand p{font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.3);letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+.nav{display:flex;flex:1;align-items:center;padding:0 10px;gap:1px;overflow-x:auto;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.ntab{padding:6px 12px;font-family:var(--display);font-weight:600;font-size:12px;letter-spacing:.3px;text-transform:uppercase;color:rgba(255,255,255,.4);cursor:pointer;border-radius:4px;transition:all .15s;white-space:nowrap;border:none;background:none}
+.ntab:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.06)}
+.ntab.active{color:var(--accent2);background:rgba(200,56,10,.18)}
+.api-area{display:flex;align-items:center;gap:6px;padding:0 12px;border-left:1px solid rgba(255,255,255,.08);flex-shrink:0}
+.api-input{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:5px;padding:5px 8px;color:#fff;font-family:var(--mono);font-size:10px;width:160px;outline:none}
+.api-input:focus{border-color:var(--accent2)}
+.api-btn{padding:5px 10px;font-family:var(--display);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.3px;border:none;border-radius:4px;cursor:pointer;background:var(--accent);color:#fff;transition:background .15s;white-space:nowrap}
+.api-btn:hover{background:var(--accent2)}
+.api-btn.connected{background:var(--green)}
+.api-status{font-family:var(--mono);font-size:9px;letter-spacing:.3px}
+.api-status.ok{color:#6ee7a0}
+.api-status.no{color:rgba(255,255,255,.25)}
+
+/* ── SHEETS BAR ── */
+.sheets-bar{background:#f0f4ff;border-bottom:2px solid #c5d3f5;padding:6px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sheets-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#3451b2;white-space:nowrap;flex-shrink:0}
+.sheets-input{flex:1;min-width:250px;background:#fff;border:1px solid #c5d3f5;border-radius:5px;padding:5px 9px;color:var(--ink);font-family:var(--body);font-size:12px;outline:none}
+.sheets-input:focus{border-color:#3451b2}
+.sheets-btn{padding:5px 12px;background:#3451b2;color:#fff;font-family:var(--display);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.3px;border:none;border-radius:4px;cursor:pointer;white-space:nowrap;transition:background .15s}
+.sheets-btn:hover{background:#2d43a0}
+.sheets-help{font-family:var(--mono);font-size:9px;color:#7c8fd6;cursor:pointer;text-decoration:underline;white-space:nowrap}
+.sheets-help-panel{background:#eef2ff;border-bottom:1px solid #c5d3f5;padding:8px 16px;font-size:11px;color:#3451b2;line-height:1.7;display:none}
+.sheets-help-panel a{color:#3451b2}
+
+/* ── TOOLBAR ── */
+.toolbar{background:var(--surface);border-bottom:2px solid var(--border);padding:7px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tbtn{padding:5px 12px;background:var(--ink);color:#fff;font-family:var(--display);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.3px;border:none;border-radius:4px;cursor:pointer;transition:background .15s;white-space:nowrap}
+.tbtn:hover{background:var(--accent)}
+.tbtn.ghost{background:transparent;color:var(--ink);border:1px solid var(--border2)}
+.tbtn.ghost:hover{border-color:var(--accent);color:var(--accent)}
+.tbtn.ai{background:var(--purple)}
+.tbtn.ai:hover{background:#7a3daa}
+.tbtn:disabled{opacity:.35;cursor:not-allowed}
+.tsep{width:1px;height:20px;background:var(--border2);flex-shrink:0}
+.fgroup{display:flex;align-items:center;gap:5px}
+.flbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink3);white-space:nowrap}
+select{background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:4px 8px;color:var(--ink);font-family:var(--body);font-size:11px;outline:none;cursor:pointer;max-width:140px}
+select:focus{border-color:var(--accent)}
+select[multiple]{height:auto;min-height:28px}
+
+/* ── FILES BAR ── */
+.files-bar{background:var(--surface2);border-bottom:1px solid var(--border);padding:5px 16px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-height:32px}
+.files-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink3);flex-shrink:0}
+.fpill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;border:1px solid;font-size:11px;white-space:nowrap}
+.fpill.data{border-color:var(--green);background:var(--green2);color:var(--green)}
+.fpill.cost{border-color:var(--blue);background:var(--blue2);color:var(--blue)}
+.fpill-x{cursor:pointer;opacity:.6;font-size:13px;line-height:1}
+.fpill-x:hover{opacity:1}
+.no-files{font-family:var(--mono);font-size:10px;color:var(--ink3);font-style:italic}
+
+/* ── SUMMARY BANNER ── */
+.summary-banner{background:var(--ink);color:#fff;padding:8px 16px;font-family:var(--mono);font-size:10px;letter-spacing:.3px;display:none;gap:16px;flex-wrap:wrap;align-items:center}
+.summary-banner.vis{display:flex}
+.sb-item{display:flex;flex-direction:column;gap:1px}
+.sb-val{font-size:13px;font-weight:500;font-family:var(--display)}
+.sb-lbl{font-size:8px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px}
+.sb-sep{width:1px;height:28px;background:rgba(255,255,255,.1);flex-shrink:0}
+
+/* ── DROP OVERLAY ── */
+.drop-overlay{position:fixed;inset:0;background:rgba(200,56,10,.1);border:3px dashed var(--accent);z-index:500;display:none;align-items:center;justify-content:center;pointer-events:none}
+.drop-overlay.vis{display:flex}
+.drop-msg{font-family:var(--display);font-weight:800;font-size:28px;color:var(--accent);text-transform:uppercase;letter-spacing:2px;background:rgba(255,255,255,.9);padding:20px 40px;border-radius:12px}
+
+/* ── MAIN / TABS ── */
+.main{padding:16px;max-width:1440px;margin:0 auto}
+.tab{display:none}
+.tab.active{display:block}
+
+/* ── EMPTY STATE ── */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;gap:10px;opacity:.5}
+.empty-icon{font-size:44px}
+.empty h2{font-family:var(--display);font-weight:700;font-size:19px}
+.empty p{font-size:13px;color:var(--ink3);max-width:360px;line-height:1.6}
+
+/* ── KPI ROW ── */
+.kpi-row{display:grid;grid-template-columns:repeat(8,1fr);gap:10px;margin-bottom:14px}
+.kcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;position:relative;overflow:hidden}
+.kcard::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px}
+.kcard.red::after{background:var(--accent)}
+.kcard.green::after{background:var(--green)}
+.kcard.blue::after{background:var(--blue)}
+.kcard.yellow::after{background:var(--yellow)}
+.kcard.purple::after{background:var(--purple)}
+.kcard.orange::after{background:var(--accent2)}
+.kcard.ink::after{background:var(--ink3)}
+.kcard.teal::after{background:#0d7377}
+.klbl{font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink3);margin-bottom:5px}
+.kval{font-family:var(--display);font-weight:800;font-size:22px;color:var(--ink);line-height:1}
+.ksub{font-size:10px;color:var(--ink3);margin-top:3px}
+.kdelta{font-family:var(--mono);font-size:9px;margin-top:2px}
+.kdelta.up{color:var(--green)}
+.kdelta.dn{color:var(--red)}
+.kdelta.warn{color:var(--yellow)}
+
+/* ── GRID ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.g13{display:grid;grid-template-columns:1fr 3fr;gap:12px;margin-bottom:12px}
+.g31{display:grid;grid-template-columns:3fr 1fr;gap:12px;margin-bottom:12px}
+.fw{margin-bottom:12px}
+
+/* ── PANEL ── */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.ph{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;background:var(--surface2)}
+.ph h3{font-family:var(--display);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.4px;flex:1;color:var(--ink)}
+.pbadge{font-family:var(--mono);font-size:8px;padding:2px 6px;border-radius:20px;background:var(--bg2);color:var(--ink3);border:1px solid var(--border);white-space:nowrap}
+.pbadge.green{background:var(--green2);color:var(--green);border-color:var(--green)}
+.pbadge.red{background:var(--red2);color:var(--red);border-color:var(--red)}
+.pbadge.blue{background:var(--blue2);color:var(--blue);border-color:var(--blue)}
+.pbadge.yellow{background:var(--yellow2);color:var(--yellow);border-color:var(--yellow)}
+.pbody{padding:12px 14px}
+.pbody.np{padding:0}
+
+/* ── CHART WRAPPERS ── */
+.cw{position:relative;height:200px}
+.cw-lg{position:relative;height:280px}
+.cw-sm{position:relative;height:150px}
+
+/* ── ATTACH BARS ── */
+.abar-list{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto}
+.abar-item{display:flex;flex-direction:column;gap:2px}
+.abar-row{display:flex;align-items:center;gap:6px}
+.abar-name{flex:1;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.abar-pct{font-family:var(--mono);font-size:11px;font-weight:500;width:40px;text-align:right;flex-shrink:0}
+.abar-cnt{font-family:var(--mono);font-size:9px;color:var(--ink3);width:44px;text-align:right;flex-shrink:0}
+.abar-track{height:4px;background:var(--bg2);border-radius:2px;overflow:hidden}
+.abar-fill{height:100%;border-radius:2px;transition:width .4s ease}
+
+/* ── TABLE ── */
+.twrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{background:var(--bg2);padding:7px 10px;text-align:left;font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink3);white-space:nowrap;border-bottom:2px solid var(--border2);cursor:pointer;user-select:none}
+th:hover{background:var(--border)}
+td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--ink);vertical-align:middle}
+tr:hover td{background:rgba(0,0,0,.015)}
+tr:last-child td{border-bottom:none}
+.mono{font-family:var(--mono);font-size:10px}
+.tag{display:inline-block;padding:1px 6px;border-radius:3px;font-family:var(--mono);font-size:9px;font-weight:500}
+.tag.green{background:var(--green2);color:var(--green)}
+.tag.red{background:var(--red2);color:var(--red)}
+.tag.yellow{background:var(--yellow2);color:var(--yellow)}
+.tag.blue{background:var(--blue2);color:var(--blue)}
+.tag.purple{background:var(--purple2);color:var(--purple)}
+.tag.grey{background:var(--bg2);color:var(--ink3)}
+
+/* ── PROGRESS TOAST ── */
+.prog-toast{position:fixed;bottom:18px;right:18px;background:var(--ink);color:#fff;border-radius:9px;padding:10px 16px;font-family:var(--mono);font-size:10px;z-index:900;display:none;gap:8px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.25);max-width:380px}
+.prog-toast.vis{display:flex}
+.prog-track{width:160px;height:3px;background:rgba(255,255,255,.15);border-radius:2px;overflow:hidden;flex-shrink:0}
+.prog-fill{height:100%;background:var(--accent2);border-radius:2px;animation:progSlide 1.4s ease-in-out infinite}
+@keyframes progSlide{0%{width:0;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0;margin-left:100%}}
+
+/* ── ERROR TOAST ── */
+.err-toast{position:fixed;bottom:18px;left:18px;background:var(--red);color:#fff;border-radius:7px;padding:10px 14px;font-size:11px;z-index:901;display:none;max-width:380px;line-height:1.5}
+.err-toast.vis{display:block}
+
+/* ── DOTS LOADER ── */
+.dots{display:inline-flex;gap:3px}
+.dots span{width:5px;height:5px;border-radius:50%;background:var(--accent2);animation:dotpulse 1.2s ease-in-out infinite}
+.dots span:nth-child(2){animation-delay:.2s}
+.dots span:nth-child(3){animation-delay:.4s}
+@keyframes dotpulse{0%,80%,100%{transform:scale(.5);opacity:.3}40%{transform:scale(1);opacity:1}}
+
+/* ── ATTACH TAB CONTROLS ── */
+.tab-switcher{display:flex;gap:4px;margin-bottom:12px}
+.tsw-btn{padding:5px 14px;font-family:var(--display);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px;border-radius:4px;cursor:pointer;border:1px solid var(--border2);background:var(--bg2);color:var(--ink3);transition:all .13s}
+.tsw-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1100px){.kpi-row{grid-template-columns:repeat(4,1fr)}.g2,.g13,.g31{grid-template-columns:1fr}.g3{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.kpi-row{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr}.api-area{display:none}}
+</style>
+</head>
+<body>
+
+<!-- DROP OVERLAY -->
+<div class="drop-overlay" id="dropOverlay"><div class="drop-msg">📂 Drop files to load</div></div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="brand"><h1>Burger <em>Singh</em></h1><p>POS Intelligence · v4</p></div>
+    <nav class="nav" id="mainNav">
+      <button class="ntab active" onclick="showTab('overview')">Overview</button>
+      <button class="ntab" onclick="showTab('attach')">Attach Rates</button>
+      <button class="ntab" onclick="showTab('basket')">🛒 Basket</button>
+      <button class="ntab" onclick="showTab('stores')">Stores</button>
+      <button class="ntab" onclick="showTab('trends')">Trends</button>
+      <button class="ntab" onclick="showTab('margin')">Margin</button>
+      <button class="ntab" onclick="showTab('ai')">AI Briefing</button>
+    </nav>
+    <div class="api-area">
+      <input type="password" class="api-input" id="apiKey" placeholder="AIza... API key">
+      <button class="api-btn" id="apiBtn" onclick="connectApi()">Connect</button>
+      <span class="api-status no" id="apiStatus">● No key</span>
+    </div>
+  </div>
+</header>
+
+<!-- GOOGLE SHEETS BAR -->
+<div class="sheets-bar">
+  <span class="sheets-label">📊 Sheets</span>
+  <input type="text" class="sheets-input" id="sheetsUrl" placeholder="Paste Google Sheets URL — press Enter to load all tabs instantly">
+  <button class="sheets-btn" onclick="loadSheets()">⚡ Load</button>
+  <span class="sheets-help" onclick="toggleSheetsHelp()">ⓘ Setup</span>
+</div>
+<div class="sheets-help-panel" id="sheetsHelpPanel">
+  <strong>One-time setup:</strong>
+  1. <a href="https://console.cloud.google.com/apis/library/sheets.googleapis.com" target="_blank">Enable Google Sheets API</a> on your Google Cloud project &nbsp;|&nbsp;
+  2. Your AIza... key (from <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a>) works for both Gemini + Sheets &nbsp;|&nbsp;
+  3. Set sheet to <em>Anyone with link can view</em> &nbsp;|&nbsp;
+  4. Paste URL above → Load
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <button class="tbtn" onclick="triggerFileInput('dataFiles')">⬆ Add Data Files</button>
+  <input type="file" id="dataFiles" accept=".csv,.xlsx,.xls" multiple style="display:none" onchange="handleDataFiles(event.target.files)">
+  <button class="tbtn" style="background:var(--blue)" onclick="triggerFileInput('costFile')">₹ Upload Cost File</button>
+  <input type="file" id="costFile" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleCostFile(event.target.files[0])">
+  <button class="tbtn ghost" onclick="clearAll()">✕ Clear All</button>
+  <div class="tsep"></div>
+  <div class="fgroup"><span class="flbl">Store</span>
+    <select id="fStore" multiple size="1" onchange="applyFilters()" title="Hold Ctrl/Cmd for multiple"></select>
+  </div>
+  <div class="fgroup"><span class="flbl">Month</span>
+    <select id="fMonth" multiple size="1" onchange="applyFilters()" title="Hold Ctrl/Cmd for multiple"></select>
+  </div>
+  <div class="fgroup"><span class="flbl">Channel</span>
+    <select id="fChannel" onchange="applyFilters()"><option value="all">All Channels</option></select>
+  </div>
+  <div class="fgroup"><span class="flbl">Type</span>
+    <select id="fChannelType" onchange="applyFilters()">
+      <option value="all">All Types</option>
+      <option value="pos">POS / Dine-in</option>
+      <option value="delivery">Delivery</option>
+      <option value="unknown">Unmapped</option>
+    </select>
+  </div>
+  <button class="tbtn ghost" style="font-size:10px" onclick="showChannelMapper()">⚙ Map Channels</button>
+  <div class="fgroup"><span class="flbl">Order Type</span>
+    <select id="fOrderType" onchange="applyFilters()">
+      <option value="all">All Types</option>
+      <option value="combo">Combo</option>
+      <option value="standalone">Standalone</option>
+      <option value="mixed">Mixed</option>
+      <option value="solo">Solo</option>
+    </select>
+  </div>
+  <div class="fgroup"><span class="flbl">Status</span>
+    <select id="fStatus" onchange="applyFilters()">
+      <option value="valid" selected>Valid Only</option>
+      <option value="all">All</option>
+    </select>
+  </div>
+  <button class="tbtn ai" id="aiBtn" onclick="runAI()" disabled>🤖 AI Briefing</button>
+</div>
+
+<!-- FILES BAR -->
+<div class="files-bar" id="filesBar">
+  <span class="files-lbl">Sources:</span>
+  <span class="no-files" id="noFilesMsg">No data loaded — drag & drop files anywhere, or use the buttons above</span>
+</div>
+
+<!-- SUMMARY BANNER -->
+<div class="summary-banner" id="summaryBanner">
+  <div class="sb-item"><div class="sb-val" id="sb-rows">—</div><div class="sb-lbl">Rows</div></div>
+  <div class="sb-sep"></div>
+  <div class="sb-item"><div class="sb-val" id="sb-orders">—</div><div class="sb-lbl">Orders</div></div>
+  <div class="sb-sep"></div>
+  <div class="sb-item"><div class="sb-val" id="sb-stores">—</div><div class="sb-lbl">Stores</div></div>
+  <div class="sb-sep"></div>
+  <div class="sb-item"><div class="sb-val" id="sb-range">—</div><div class="sb-lbl">Date Range</div></div>
+  <div class="sb-sep"></div>
+  <div class="sb-item"><div class="sb-val" id="sb-weeks">—</div><div class="sb-lbl">Weeks</div></div>
+  <div class="sb-sep"></div>
+  <div class="sb-item"><div class="sb-val" id="sb-cost">—</div><div class="sb-lbl">Cost Items</div></div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+<!-- ── OVERVIEW TAB ── -->
+<div class="tab active" id="tab-overview">
+  <div class="empty" id="ov-empty">
+    <div class="empty-icon">🍔</div>
+    <h2>Load your Rista data to begin</h2>
+    <p>Drag & drop CSV/Excel files anywhere, or paste a Google Sheets URL above.<br>Multiple files and tabs are merged automatically.</p>
+  </div>
+  <div id="ov-content" style="display:none">
+    <div class="kpi-row" id="kpiRow"></div>
+    <div class="g2">
+      <div class="panel">
+        <div class="ph"><h3>📦 Category Attach Rates</h3><span class="pbadge" id="ov-cat-badge"></span></div>
+        <div class="pbody"><div class="abar-list" id="ov-cat-bars"></div></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><h3>🎯 Order Type Breakdown</h3></div>
+        <div class="pbody"><div class="cw"><canvas id="orderTypeChart"></canvas></div></div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="panel">
+        <div class="ph"><h3>🏪 Store Summary</h3></div>
+        <div class="pbody np"><div class="twrap"><table id="storeSummaryTbl"><thead></thead><tbody></tbody></table></div></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><h3>📈 Weekly Orders & Revenue</h3></div>
+        <div class="pbody"><div class="cw"><canvas id="weeklyChart"></canvas></div></div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="panel">
+        <div class="ph"><h3>📡 Channel Split</h3></div>
+        <div class="pbody"><div class="cw-sm"><canvas id="channelChart"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><h3>⚠️ Missed Bev Upsell by Store</h3><span class="pbadge red" id="ov-flagged-badge"></span></div>
+        <div class="pbody"><div class="cw-sm"><canvas id="flaggedChart"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ATTACH RATES TAB ── -->
+<div class="tab" id="tab-attach">
+  <div class="empty" id="at-empty"><div class="empty-icon">🔗</div><h2>No data loaded</h2></div>
+  <div id="at-content" style="display:none">
+    <div class="tab-switcher">
+      <button class="tsw-btn active" onclick="setAttachView('category',this)">By Category</button>
+      <button class="tsw-btn" onclick="setAttachView('subcategory',this)">By Sub-Category</button>
+      <button class="tsw-btn" onclick="setAttachView('item',this)">By Item</button>
+    </div>
+    <div class="g2">
+      <div class="panel">
+        <div class="ph"><h3 id="at-chart-title">Category Attach Rates</h3><span class="pbadge" id="at-badge"></span></div>
+        <div class="pbody"><div class="cw-lg"><canvas id="attachChart"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><h3>Attach Rate in Context</h3></div>
+        <div class="pbody"><div class="cw-lg"><canvas id="attachContextChart"></canvas></div></div>
+      </div>
+    </div>
+    <div class="fw panel">
+      <div class="ph">
+        <h3 id="at-tbl-title">All Categories — Attach Table</h3>
+        <input type="text" id="attachSearch" placeholder="Search..." style="padding:3px 7px;border:1px solid var(--border2);border-radius:4px;font-size:11px;width:140px;outline:none;margin-left:auto">
+      </div>
+      <div class="pbody np"><div class="twrap"><table id="attachTbl"><thead></thead><tbody></tbody></table></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── BASKET TAB ── -->
+<div class="tab" id="tab-basket">
+  <div class="empty" id="bk-empty"><div class="empty-icon">🛒</div><h2>No data loaded</h2><p>Load data, then pick an anchor item, category, or combination to see basket analysis.</p></div>
+  <div id="bk-content" style="display:none">
+    <!-- Anchor Selector -->
+    <div class="panel fw" style="border:2px solid var(--accent)">
+      <div class="ph" style="background:rgba(200,56,10,.05)">
+        <h3 style="color:var(--accent)">🛒 Anchor Selector</h3>
+        <span class="pbadge red" id="bk-anchor-badge">No anchor selected</span>
+      </div>
+      <div class="pbody">
+        <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+          <div>
+            <div class="flbl" style="margin-bottom:5px">Mode</div>
+            <select id="bkMode" onchange="renderBasketControls()" style="max-width:160px">
+              <option value="item">Single / Multi Item</option>
+              <option value="category">Category</option>
+              <option value="subcategory">Sub-Category</option>
+            </select>
+          </div>
+          <div id="bkItemPicker" style="display:flex;flex-direction:column;gap:5px">
+            <div class="flbl">Search & add items</div>
+            <div style="position:relative;display:inline-block">
+              <input type="text" id="bkItemSearch" placeholder="Type item name..." autocomplete="off"
+                style="padding:5px 9px;border:1px solid var(--border2);border-radius:5px;font-size:12px;width:220px;outline:none"
+                oninput="bkSearchItems(this.value)" onblur="setTimeout(closeBkDD,200)">
+              <div id="bkItemDD" style="display:none;position:absolute;top:100%;left:0;z-index:50;background:#fff;border:1px solid var(--border2);border-radius:5px;max-height:200px;overflow-y:auto;width:220px;box-shadow:0 4px 16px rgba(0,0,0,.1)"></div>
+            </div>
+          </div>
+          <div id="bkCatPicker" style="display:none;flex-direction:column;gap:5px">
+            <div class="flbl">Select Category</div>
+            <select id="bkCatSelect" style="max-width:200px"></select>
+          </div>
+          <div id="bkSubPicker" style="display:none;flex-direction:column;gap:5px">
+            <div class="flbl">Select Sub-Category</div>
+            <select id="bkSubSelect" style="max-width:200px"></select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div class="flbl">Logic (multi-item)</div>
+            <select id="bkLogic" style="max-width:100px"><option value="OR">OR (any)</option><option value="AND">AND (all)</option></select>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:6px">
+            <button class="tbtn" onclick="runBasket()">▶ Analyse</button>
+            <button class="tbtn ghost" onclick="clearBasket()">✕ Clear</button>
+          </div>
+        </div>
+        <!-- Selected anchor chips -->
+        <div id="bkChips" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;min-height:24px"></div>
+      </div>
+    </div>
+
+    <div id="bk-results" style="display:none">
+      <!-- Anchor KPIs -->
+      <div class="kpi-row" id="bk-kpi-row" style="grid-template-columns:repeat(6,1fr)"></div>
+      <!-- Order context -->
+      <div class="g2">
+        <div class="panel">
+          <div class="ph"><h3>📊 Order Context Breakdown</h3></div>
+          <div class="pbody"><div class="cw"><canvas id="bkContextChart"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><h3>⚠️ Flags & Insights</h3></div>
+          <div class="pbody"><div id="bkFlags" style="display:flex;flex-direction:column;gap:8px"></div></div>
+        </div>
+      </div>
+      <!-- Co-attach -->
+      <div class="g2">
+        <div class="panel">
+          <div class="ph"><h3>🔗 Top Co-occurring Items</h3><span class="pbadge" id="bk-coitem-badge"></span></div>
+          <div class="pbody"><div class="abar-list" id="bkCoItemBars"></div></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><h3>📦 Co-occurring Categories</h3></div>
+          <div class="pbody"><div class="abar-list" id="bkCoCatBars"></div></div>
+        </div>
+      </div>
+      <!-- Full co-attach table -->
+      <div class="fw panel">
+        <div class="ph"><h3>📋 Full Co-Attach Table</h3><span class="pbadge" id="bk-full-badge"></span></div>
+        <div class="pbody np"><div class="twrap"><table id="bkFullTbl"><thead></thead><tbody></tbody></table></div></div>
+      </div>
+      <!-- Weekly trend -->
+      <div class="fw panel">
+        <div class="ph"><h3>📈 Anchor + Top Co-items — Weekly Trend</h3></div>
+        <div class="pbody"><div class="cw-lg"><canvas id="bkTrendChart"></canvas></div></div>
+      </div>
+      <!-- Month-on-Month trend by store -->
+      <div class="fw panel">
+        <div class="ph"><h3>📅 Month-on-Month Attach Rate by Store</h3><span class="pbadge" id="bk-mom-badge"></span></div>
+        <div class="pbody">
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+            <div class="fgroup"><span class="flbl">Metric</span>
+              <select id="bkMomMetric" onchange="renderBkMoM()">
+                <option value="attach">Anchor Attach%</option>
+                <option value="aov">AOV of Anchor Orders</option>
+                <option value="combo">Combo Rate within Anchor</option>
+                <option value="coattach">Top Co-item Co-attach%</option>
+              </select>
+            </div>
+          </div>
+          <div class="cw-lg"><canvas id="bkMomChart"></canvas></div>
+        </div>
+      </div>
+      <!-- Store breakdown -->
+      <div class="fw panel">
+        <div class="ph"><h3>🏪 Anchor Attach Rate by Store</h3></div>
+        <div class="pbody np"><div class="twrap"><table id="bkStoreTbl"><thead></thead><tbody></tbody></table></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── STORES TAB ── -->
+<div class="tab" id="tab-stores">
+  <div class="empty" id="st-empty"><div class="empty-icon">🏪</div><h2>No data loaded</h2></div>
+  <div id="st-content" style="display:none">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      <div class="fgroup"><span class="flbl">Store A</span><select id="svsA" onchange="renderStores()"></select></div>
+      <span style="font-family:var(--display);font-weight:800;font-size:14px;color:var(--ink3)">VS</span>
+      <div class="fgroup"><span class="flbl">Store B</span><select id="svsB" onchange="renderStores()"></select></div>
+      <div class="fgroup"><span class="flbl">Metric</span>
+        <select id="svsMetric" onchange="renderStores()">
+          <option value="bev">Bev Attach%</option>
+          <option value="sides">Sides Attach%</option>
+          <option value="combo">Combo Rate%</option>
+          <option value="solo">Solo Rate%</option>
+          <option value="aov">AOV ₹</option>
+          <option value="revenue">Revenue ₹</option>
+        </select>
+      </div>
+    </div>
+    <div class="fw panel">
+      <div class="ph"><h3 id="svs-title">Weekly Comparison — Store A vs B</h3></div>
+      <div class="pbody"><div class="cw-lg"><canvas id="svsChart"></canvas></div></div>
+    </div>
+    <div class="g2">
+      <div class="panel">
+        <div class="ph"><h3>📋 Head-to-Head Summary</h3></div>
+        <div class="pbody np"><div class="twrap"><table id="svsTbl"><thead></thead><tbody></tbody></table></div></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><h3>🗂️ Category Revenue Mix — A vs B</h3></div>
+        <div class="pbody"><div class="cw"><canvas id="svsCatChart"></canvas></div></div>
+      </div>
+    </div>
+    <div class="fw panel">
+      <div class="ph"><h3>🔍 Item Attach Diff — A vs B</h3><span class="pbadge">Items differing by &gt;10%</span></div>
+      <div class="pbody np"><div class="twrap"><table id="svsItemTbl"><thead></thead><tbody></tbody></table></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TRENDS TAB ── -->
+<div class="tab" id="tab-trends">
+  <div class="empty" id="tr-empty"><div class="empty-icon">📈</div><h2>No data loaded</h2></div>
+  <div id="tr-content" style="display:none">
+    <div class="fw panel">
+      <div class="ph"><h3>📈 Category Attach Rate — Weekly</h3></div>
+      <div class="pbody"><div class="cw-lg"><canvas id="trendCatChart"></canvas></div></div>
+    </div>
+    <div class="g2">
+      <div class="panel">
+        <div class="ph"><h3>🗂️ Revenue Mix Shift — Weekly %</h3></div>
+        <div class="pbody"><div class="cw-lg"><canvas id="trendMixChart"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><h3>🏪 Bev Attach by Store — Weekly</h3></div>
+        <div class="pbody"><div class="cw-lg"><canvas id="trendStoreBevChart"></canvas></div></div>
+      </div>
+    </div>
+    <div class="fw panel">
+      <div class="ph"><h3>⚠️ Anomalies — Z-Score Heatmap</h3></div>
+      <div class="pbody np" id="zHeatWrap"></div>
+    </div>
+    <div class="fw panel">
+      <div class="ph"><h3>⚠️ Flagged Anomalies</h3><span class="pbadge red" id="tr-anom-badge"></span></div>
+      <div class="pbody" id="tr-anom-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MARGIN TAB ── -->
+<div class="tab" id="tab-margin">
+  <div class="empty" id="mg-empty">
+    <div class="empty-icon">₹</div>
+    <h2>Upload a cost file to unlock margin analysis</h2>
+    <p>Click "₹ Upload Cost File" in the toolbar.<br>
+    Format: <strong>ITEM_NAME | CHANNEL | COCO_EX_GST | COCO_INC_GST | FOFO_EX_GST | FOFO_INC_GST | SELLING_PRICE</strong><br>
+    One row per item per channel (Dine-in / Delivery).</p>
+  </div>
+  <div id="mg-content" style="display:none">
+    <!-- Margin Mode Toggle -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">
+      <span class="flbl">Margin Calculation Mode:</span>
+      <button class="tsw-btn active" id="mmOrder" onclick="setMarginMode('order',this)">Order-level (Invoice Net − All FOFO Costs)</button>
+      <button class="tsw-btn" id="mmItem" onclick="setMarginMode('item',this)">Item-level (Selling Price − FOFO Cost per row)</button>
+      <span style="font-size:11px;color:var(--ink3);margin-left:auto">⚠ Item-level uses SELLING_PRICE from cost file. Combo rows absorb Option/AddOn costs.</span>
+    </div>
+    <div class="kpi-row" id="mg-kpi-row" style="grid-template-columns:repeat(5,1fr)"></div>
+    <div class="g2">
+      <div class="panel">
+        <div class="ph"><h3>📊 Margin% by Category</h3></div>
+        <div class="pbody"><div class="cw"><canvas id="mgCatChart"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><h3>🏪 Margin% by Store</h3></div>
+        <div class="pbody"><div class="cw"><canvas id="mgStoreChart"></canvas></div></div>
+      </div>
+    </div>
+    <!-- Scatter redesign: quadrant + table -->
+    <div class="fw panel">
+      <div class="ph">
+        <h3>🎯 Revenue vs Margin — Item Quadrant Map</h3>
+        <span class="pbadge blue">Hover for item name · Color = Category</span>
+        <span class="pbadge" id="mgScatterInfo" style="margin-left:4px"></span>
+      </div>
+      <div class="pbody">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;font-size:10px;font-family:var(--mono)">
+          <div style="padding:4px 8px;background:rgba(30,110,58,.08);border-radius:4px;color:var(--green)">⬆ TOP LEFT = Hidden Gems (low rev, high margin) — push harder</div>
+          <div style="padding:4px 8px;background:rgba(30,110,58,.12);border-radius:4px;color:var(--green)">⬆ TOP RIGHT = Stars (high rev, high margin) — protect</div>
+          <div style="padding:4px 8px;background:rgba(184,42,30,.08);border-radius:4px;color:var(--red)">⬇ BOTTOM LEFT = Cut Candidates (low rev, low margin)</div>
+          <div style="padding:4px 8px;background:rgba(158,107,0,.08);border-radius:4px;color:var(--yellow)">⬇ BOTTOM RIGHT = Watch Closely (high rev, low margin)</div>
+        </div>
+        <div class="cw-lg"><canvas id="mgScatterChart"></canvas></div>
+      </div>
+    </div>
+    <!-- Scatter table (easier to read) -->
+    <div class="fw panel">
+      <div class="ph"><h3>📋 Item Margin Table — sorted by Margin%</h3>
+        <div style="display:flex;gap:4px;margin-left:auto">
+          <button class="tsw-btn active" id="scatterSortMargin" onclick="sortScatterTable('margin',this)">Sort: Margin%</button>
+          <button class="tsw-btn" id="scatterSortRev" onclick="sortScatterTable('revenue',this)">Sort: Revenue</button>
+          <button class="tsw-btn" id="scatterSortQuad" onclick="sortScatterTable('quadrant',this)">Sort: Quadrant</button>
+        </div>
+      </div>
+      <div class="pbody np"><div class="twrap"><table id="mgItemTbl"><thead></thead><tbody></tbody></table></div></div>
+    </div>
+    <!-- Swap Analysis -->
+    <div class="g2">
+      <div class="panel">
+        <div class="ph"><h3>🔄 Swap Analysis</h3></div>
+        <div class="pbody">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <div class="fgroup"><span class="flbl">Item A (current)</span>
+                <select id="swapA" style="max-width:200px" onchange="runSwap()"></select>
+              </div>
+              <span style="color:var(--ink3);font-size:18px">→</span>
+              <div class="fgroup"><span class="flbl">Item B (replacement)</span>
+                <select id="swapB" style="max-width:200px" onchange="runSwap()"></select>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="tsw-btn active" id="swapModeBtn1" onclick="setSwapMode('replace',this)">Replace A with B</button>
+              <button class="tsw-btn" id="swapModeBtn2" onclick="setSwapMode('addon',this)">Add B alongside A</button>
+            </div>
+            <div id="swapResult" style="background:var(--bg2);border-radius:6px;padding:12px;font-size:12px;min-height:60px;line-height:1.7"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Attach Simulator -->
+      <div class="panel">
+        <div class="ph"><h3>📊 Attach Impact Simulator</h3></div>
+        <div class="pbody">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="fgroup"><span class="flbl">Category</span>
+              <select id="simCategory" style="max-width:200px" onchange="runSimulator()"></select>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span class="flbl">Target Attach %</span>
+              <input type="range" id="simTarget" min="0" max="100" value="60" oninput="document.getElementById('simTargetVal').textContent=this.value+'%';runSimulator()" style="flex:1">
+              <span id="simTargetVal" style="font-family:var(--mono);font-size:12px;width:36px">60%</span>
+            </div>
+            <div id="simResult" style="background:var(--bg2);border-radius:6px;padding:12px;font-size:12px;min-height:80px;line-height:1.8"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── AI TAB ── -->
+<div class="tab" id="tab-ai">
+  <div class="empty" id="ai-empty"><div class="empty-icon">🤖</div><h2>Connect API key + load data</h2><p>Then click "AI Briefing" in the toolbar. Gemini 2.0 Flash will generate a structured CoS briefing — free.</p></div>
+  <div id="ai-content" style="display:none">
+    <div style="background:var(--ink);color:#fff;border-radius:var(--radius);overflow:hidden">
+      <div style="padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:8px">
+        <span>🤖</span>
+        <span style="font-family:var(--display);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.4px;flex:1">Gemini's CoS Briefing</span>
+        <span style="font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:20px;background:rgba(200,56,10,.25);color:var(--accent3);border:1px solid rgba(200,56,10,.35)">Gemini 2.0 Flash · Free</span>
+      </div>
+      <div style="padding:16px;font-size:13px;line-height:1.8;white-space:pre-wrap;font-family:var(--body)" id="aiOutput">
+        <div style="display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.4);font-family:var(--mono);font-size:11px">
+          <div class="dots"><span></span><span></span><span></span></div>
+          Waiting for data and API key...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- CHANNEL MAPPER MODAL -->
+<div id="channelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:10px;padding:20px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.2)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h3 style="font-family:var(--display);font-weight:700;font-size:16px;text-transform:uppercase">⚙ Channel Type Mapping</h3>
+      <button onclick="$('channelModal').style.display='none'" style="border:none;background:none;font-size:18px;cursor:pointer;color:var(--ink3)">×</button>
+    </div>
+    <p style="font-size:12px;color:var(--ink3);margin-bottom:12px">Map each channel to POS/Dine-in or Delivery. Auto-detected values shown below — override as needed.</p>
+    <div id="channelMapperRows"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="tbtn" onclick="saveChannelMap()">✓ Save Mapping</button>
+      <button class="tbtn ghost" onclick="$('channelModal').style.display='none'">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="prog-toast" id="progToast">
+  <div class="dots"><span></span><span></span><span></span></div>
+  <div style="flex:1"><div id="progMsg">Loading...</div><div class="prog-track"><div class="prog-fill"></div></div></div>
+</div>
+<div class="err-toast" id="errToast"></div>
+
+<script>
+'use strict';
+// ════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════
+const S = {
+  rawRows: [],
+  orders: {},
+  filteredOrders: [],
+  costMap: {},        // 'ITEMNAME||channeltype' -> { fofo_inc, coco_inc, fofo_ex, coco_ex, selling_price }
+  costMatchRate: '',
+  sources: [],
+  apiKey: '',
+  loadedSheetIds: new Set(),
+  charts: {},
+  basketAnchors: [],
+  basketMode: 'item',
+  attachView: 'category',
+  swapMode: 'replace',
+  marginMode: 'order',  // 'order' | 'item'
+  // Channel type mapping: raw channel name -> 'pos' | 'delivery' | 'unknown'
+  channelTypeMap: {},
+};
+
+// Auto-detect channel type from name
+const DELIVERY_KEYWORDS = ['swiggy','zomato','dunzo','magicpin','thrive','online','delivery','app','talabat'];
+const POS_KEYWORDS = ['dine in','dine-in','dine_in','takeaway','take away','pos','counter','walk','in-store','instore','kiosk'];
+function detectChannelType(ch) {
+  const lower = ch.toLowerCase();
+  if (DELIVERY_KEYWORDS.some(k => lower.includes(k))) return 'delivery';
+  if (POS_KEYWORDS.some(k => lower.includes(k))) return 'pos';
+  return 'unknown';
+}
+
+const COLORS = ['#c8380a','#174f7a','#1e6e3a','#5a2d82','#9e6b00','#0d7377','#8b2a18','#1a3a5c','#2d5a1e'];
+const CANCELLED = new Set(['CANCELLED','VOID','NON_CHARGEABLE','NON CHARGEABLE']);
+
+// ════════════════════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const col = (i, a=1) => {
+  const c = COLORS[i % COLORS.length];
+  if (a === 1) return c;
+  const r = parseInt(c.slice(1,3),16), g = parseInt(c.slice(3,5),16), b = parseInt(c.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+};
+const fmt = n => {
+  if (n >= 1e7) return (n/1e7).toFixed(1)+'Cr';
+  if (n >= 1e5) return (n/1e5).toFixed(1)+'L';
+  if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
+  return Math.round(n).toLocaleString();
+};
+const pct = (n, t) => t > 0 ? (n/t*100) : 0;
+const pctFmt = (n, t) => pct(n,t).toFixed(1) + '%';
+const yieldF = () => new Promise(r => setTimeout(r, 15));
+const dc = id => {
+  try {
+    if (S.charts[id]) { S.charts[id].destroy(); delete S.charts[id]; }
+    const canvas = document.getElementById(id);
+    if (canvas) {
+      const existing = Chart.getChart(canvas);
+      if (existing) existing.destroy();
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  } catch(e) {}
+};
+
+function showProg(msg) { $('progToast').classList.add('vis'); $('progMsg').textContent = msg; }
+function hideProg() { $('progToast').classList.remove('vis'); }
+function showErr(msg) {
+  const e = $('errToast'); e.textContent = msg; e.classList.add('vis');
+  setTimeout(() => e.classList.remove('vis'), 6000);
+}
+
+function showTab(name) {
+  document.querySelectorAll('.ntab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const tabs = ['overview','attach','basket','stores','trends','margin','ai'];
+  document.querySelectorAll('.ntab')[tabs.indexOf(name)]?.classList.add('active');
+  $('tab-'+name)?.classList.add('active');
+}
+
+function triggerFileInput(id) { $(id).value=''; $(id).click(); }
+
+// pct class helper
+function pc(p) { return p >= 40 ? 'green' : p >= 20 ? 'yellow' : 'red'; }
+
+// ════════════════════════════════════════════════════════════════
+// API KEY
+// ════════════════════════════════════════════════════════════════
+function connectApi() {
+  const v = $('apiKey').value.trim();
+  if (!v || v.length < 8) { showErr('Enter a valid API key.'); return; }
+  S.apiKey = v;
+  $('apiBtn').textContent = '✓ Connected'; $('apiBtn').classList.add('connected');
+  $('apiStatus').textContent = '● Connected'; $('apiStatus').className = 'api-status ok';
+  updateAiBtn();
+}
+function updateAiBtn() { $('aiBtn').disabled = !(S.apiKey && S.filteredOrders.length > 0); }
+function toggleSheetsHelp() {
+  const p = $('sheetsHelpPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+// ════════════════════════════════════════════════════════════════
+// DATE HELPERS
+// ════════════════════════════════════════════════════════════════
+function parseDate(s) {
+  if (!s) return null;
+  if (s instanceof Date) return isNaN(s) ? null : s;
+  const str = String(s).trim();
+  if (!str) return null;
+  // ISO: YYYY-MM-DD or YYYY-MM-DDTHH:...
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) { const d = new Date(str); return isNaN(d) ? null : d; }
+  // DD-MM-YYYY or DD/MM/YYYY
+  const m = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+  if (m) { const yr = m[3].length===2?'20'+m[3]:m[3]; const d = new Date(`${yr}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`); if (!isNaN(d)) return d; }
+  // Excel serial
+  if (/^\d{5}$/.test(str)) { const d = new Date(Math.round((+str - 25569)*86400000)); return isNaN(d) ? null : d; }
+  const d = new Date(str); return isNaN(d) ? null : d;
+}
+function toISO(s) {
+  const d = parseDate(s); if (!d) return '';
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function toWeek(s) {
+  const d = parseDate(s); if (!d) return 'Unknown';
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = tmp.getUTCDay() || 7;
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - day);
+  const y1 = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  const w = Math.ceil(((tmp - y1) / 86400000 + 1) / 7);
+  return `${tmp.getUTCFullYear()}-W${String(w).padStart(2,'0')}`;
+}
+function toMonth(s) {
+  const d = parseDate(s); if (!d) return 'Unknown';
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function monthLabel(k) {
+  if (!k || !k.includes('-')) return k;
+  const [y, m] = k.split('-');
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1] + ' ' + y;
+}
+
+// ════════════════════════════════════════════════════════════════
+// ROW NORMALISATION
+// ════════════════════════════════════════════════════════════════
+function normaliseRow(raw, sheetName) {
+  const r = {};
+  for (const k in raw) r[k.trim().toUpperCase().replace(/\s+/g,'_')] = String(raw[k] ?? '').trim();
+  // Convert Date objects to ISO strings
+  for (const k in raw) {
+    if (raw[k] instanceof Date) {
+      const d = raw[k];
+      r[k.trim().toUpperCase().replace(/\s+/g,'_')] =
+        `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+  }
+  // Derived fields
+  r._sheet   = sheetName || '';
+  r._date    = toISO(r.BUSINESS_DATE || r.INVOICE_DATE || '');
+  r._week    = toWeek(r._date);
+  r._month   = toMonth(r._date);
+  r._branch  = r.BRANCH_NAME || r.BRANCH_CODE || sheetName || 'Unknown';
+  r._channel = r.CHANNEL || r.ORDER_SOURCE || 'Unknown';
+  r._channelType = S.channelTypeMap[r._channel] || detectChannelType(r._channel);
+  r._cat     = (r.CATEGORY || 'Uncategorised').trim();
+  r._subcat  = (r.SUBCATEGORY || '').trim();
+  r._item    = (r.ITEM_NAME || r.SKU || '').trim();
+  r._type    = (r.TYPE || '').trim();          // Item | Option | Add On
+  r._invoice = r.INVOICE_NUMBER || r.TICKET_NUMBER || '';
+  r._qty     = parseFloat(r.SALE_ITEM_QTY || r.ORIGINAL_QTY || 1) || 1;
+  r._net     = parseFloat(r.NET_AMOUNT || 0) || 0;
+  r._gross   = parseFloat(r.GROSS_AMOUNT || 0) || 0;
+  r._disc    = parseFloat(r.DISCOUNTS || 0) || 0;
+  r._status  = (r.SALE_STATUS || '').toUpperCase().trim();
+  r._valid   = !CANCELLED.has(r._status);
+  return r;
+}
+
+// ════════════════════════════════════════════════════════════════
+// COMBO DETECTION (per spec)
+// ════════════════════════════════════════════════════════════════
+const COMBO_WORDS = ['combo','meal','deal'];
+function isComboRow(r) {
+  if (r._type !== 'Item') return false;
+  const fields = [r._cat, r._subcat, r._item, r.ITEM_GROUP_NAME || ''].map(f => f.toLowerCase());
+  return COMBO_WORDS.some(w => fields.some(f => f.includes(w)));
+}
+function isBevRow(r)   { return /bev|drink|shake|juice|cola|pepsi|coke|water|lassi|smoothie|tea|coffee|soda|mocktail|sprite|fanta|nimbu/i.test(r._cat + ' ' + r._item); }
+function isFriesRow(r) { return /fries|side|rings|nugget|salad|potato|wedge/i.test(r._cat + ' ' + r._item); }
+function isBurgerRow(r){ return r._type === 'Item' && /burger|wrap|sandwich|roll/i.test(r._cat + ' ' + r._item) && !isComboRow(r); }
+
+// ════════════════════════════════════════════════════════════════
+// ORDER PRE-PROCESSING (per spec)
+// ════════════════════════════════════════════════════════════════
+function buildOrders(rows) {
+  // Group rows by invoice
+  const inv2rows = {};
+  for (const r of rows) {
+    if (!r._invoice || !r._valid) continue;
+    if (!inv2rows[r._invoice]) inv2rows[r._invoice] = [];
+    inv2rows[r._invoice].push(r);
+  }
+
+  const orders = {};
+  for (const [inv, rr] of Object.entries(inv2rows)) {
+    const first = rr[0];
+    const itemRows  = rr.filter(r => r._type === 'Item');
+    const addonRows = rr.filter(r => r._type === 'Add On');
+    const optionRows = rr.filter(r => r._type === 'Option');
+
+    const hasCombo          = rr.some(isComboRow);
+    const hasStandaloneBurger = rr.some(isBurgerRow);
+    const hasBev            = rr.some(isBevRow);
+    const hasFries          = rr.some(isFriesRow); // includes Option (free) fries
+    const bevRows           = rr.filter(isBevRow);
+    const friesRows         = rr.filter(isFriesRow);
+
+    // Order type
+    let orderType;
+    if (hasCombo && hasStandaloneBurger) orderType = 'mixed';
+    else if (hasCombo)                   orderType = 'combo';
+    else if (itemRows.length <= 1 && addonRows.length === 0) orderType = 'solo';
+    else                                 orderType = 'standalone';
+
+    // Bev context
+    let bevContext = 'none';
+    if (hasBev) {
+      if (orderType === 'combo' || orderType === 'mixed') bevContext = 'in_combo';
+      else if (addonRows.some(isBevRow)) bevContext = 'paid_addon';
+      else bevContext = 'standalone_item';
+    }
+
+    // Missed bev upsell flag: has burger + has fries + no bev
+    const flagMissedBev = hasStandaloneBurger && hasFries && !hasBev;
+
+    // Net revenue for this order
+    const net = rr.reduce((s, r) => s + r._net, 0);
+
+    // Unique item/category/subcat sets
+    const itemSet    = new Set(itemRows.map(r => r._item).filter(Boolean));
+    const addonSet   = new Set(addonRows.map(r => r._item).filter(Boolean));
+    const optionSet  = new Set(optionRows.map(r => r._item).filter(Boolean));
+    const allItems   = new Set([...rr.map(r => r._item).filter(Boolean)]);
+    const catSet     = new Set(rr.map(r => r._cat).filter(Boolean));
+    const subcatSet  = new Set(rr.map(r => r._subcat).filter(Boolean));
+
+    orders[inv] = {
+      invoice: inv,
+      branch:  first._branch,
+      channel: first._channel,
+      channelType: first._channelType,
+      week:    first._week,
+      month:   first._month,
+      date:    first._date,
+      net,
+      orderType,
+      hasCombo, hasStandaloneBurger, hasBev, hasFries,
+      bevContext, flagMissedBev,
+      rows: rr,
+      itemRows, addonRows, optionRows,
+      itemSet, addonSet, optionSet, allItems,
+      catSet, subcatSet,
+      // margin computed later if cost available
+      margin: null,
+    };
+  }
+  return orders;
+}
+
+// ════════════════════════════════════════════════════════════════
+// COST FILE PROCESSING
+// ════════════════════════════════════════════════════════════════
+async function handleCostFile(file) {
+  if (!file) return;
+  showProg(`Reading cost file: ${file.name}...`);
+  await yieldF();
+  const ext = file.name.split('.').pop().toLowerCase();
+  let rows;
+  if (ext === 'csv') {
+    const result = Papa.parse(await file.text(), { header: true, skipEmptyLines: true });
+    rows = result.data;
+  } else {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+  }
+
+  S.costMap = {};
+  let loaded = 0;
+  for (const r of rows) {
+    const nameKey = Object.keys(r).find(k => /item.*name|name/i.test(k));
+    const chanKey = Object.keys(r).find(k => /channel/i.test(k));
+    if (!nameKey) continue;
+    const name = String(r[nameKey]).trim().toUpperCase();
+    if (!name) continue;
+
+    // Detect channel type from cost file channel column
+    const rawChan = chanKey ? String(r[chanKey]).trim() : '';
+    const chanType = rawChan ? detectChannelType(rawChan) : 'all';
+
+    const findCol = (...hints) => {
+      const k = Object.keys(r).find(k2 => hints.every(h => k2.toUpperCase().includes(h.toUpperCase())));
+      return k ? (parseFloat(String(r[k]).replace(/[^0-9.]/g, '')) || 0) : 0;
+    };
+
+    const entry = {
+      fofo_inc:      findCol('FOFO','INC') || findCol('FOFO'),
+      fofo_ex:       findCol('FOFO','EX'),
+      coco_inc:      findCol('COCO','INC') || findCol('COCO'),
+      coco_ex:       findCol('COCO','EX'),
+      selling_price: findCol('SELLING') || findCol('PRICE') || findCol('MRP'),
+      raw_channel:   rawChan,
+      chan_type:     chanType,
+    };
+
+    // Store with channel key: 'ITEMNAME||channeltype' and also generic 'ITEMNAME||all'
+    const key = `${name}||${chanType}`;
+    S.costMap[key] = entry;
+    if (chanType !== 'all') S.costMap[`${name}||all`] = S.costMap[`${name}||all`] || entry; // fallback
+    loaded++;
+  }
+
+  // Compute match rate
+  if (S.rawRows.length > 0) {
+    const itemNames = new Set(S.rawRows.map(r => r._item.toUpperCase()));
+    const hits = [...itemNames].filter(n => getCost(n, 'all')).length;
+    S.costMatchRate = `${hits}/${itemNames.size} items matched`;
+  } else {
+    S.costMatchRate = `${loaded} cost entries loaded`;
+  }
+
+  computeMargins();
+  updateFilesBar('cost', file.name + ` (${S.costMatchRate})`, 'cost-' + file.name);
+  updateSummaryBanner();
+  hideProg();
+  if ($('tab-margin').classList.contains('active')) renderMargin();
+}
+
+function fuzzyKey(name) {
+  return name.toUpperCase().replace(/[^A-Z0-9]/g, ' ').replace(/\s+/g,' ').trim();
+}
+
+function getCost(itemName, channelType) {
+  const key = itemName.toUpperCase();
+  const fkey = fuzzyKey(itemName);
+  const ct = channelType || 'all';
+  // Try exact item + channel, then exact item + all, then fuzzy
+  return S.costMap[`${key}||${ct}`]
+    || S.costMap[`${key}||all`]
+    || S.costMap[`${fkey}||${ct}`]
+    || S.costMap[`${fkey}||all`]
+    || null;
+}
+
+function computeMargins() {
+  for (const o of Object.values(S.orders)) {
+    o.margin = null;
+    o.marginMode = S.marginMode;
+
+    if (S.marginMode === 'order') {
+      // ORDER-LEVEL: invoice net revenue minus sum of FOFO costs for all rows
+      // Discounts already reflected in NET_AMOUNT — no adjustment needed
+      let totalCost = 0; let hasAny = false;
+      for (const r of o.rows) {
+        const c = getCost(r._item, o.channelType);
+        if (c && c.fofo_inc > 0) {
+          totalCost += c.fofo_inc * (r._qty || 1);
+          hasAny = true;
+        }
+      }
+      if (hasAny) o.margin = o.net - totalCost;
+
+    } else {
+      // ITEM-LEVEL: use selling_price from cost file per Item row
+      // Option rows (free in combo) and Add On rows within a combo get margin=0
+      // Standalone Item rows: margin = selling_price (or NET_AMOUNT) - FOFO cost
+      // Pro-rate any invoice discount across Item rows by gross_amount share
+      const invoiceGross = o.rows.reduce((s, r) => s + r._gross, 0);
+      const invoiceDiscount = o.rows.reduce((s, r) => s + r._disc, 0);
+      const discountRate = invoiceGross > 0 ? invoiceDiscount / invoiceGross : 0;
+
+      let totalMargin = 0; let hasAny = false;
+      for (const r of o.rows) {
+        if (r._type === 'Option') continue; // free included component, skip
+        const c = getCost(r._item, o.channelType);
+        if (!c) continue;
+        hasAny = true;
+
+        // Revenue for this row: use selling_price if provided, else NET_AMOUNT
+        // Apply discount pro-ration
+        let rowRev;
+        if (c.selling_price > 0) {
+          rowRev = c.selling_price * (r._qty || 1) * (1 - discountRate);
+        } else {
+          rowRev = r._net; // already net of discount from Rista
+        }
+
+        // Add On rows within a combo order: the revenue is already in the combo Item price
+        // Don't double-count by using their NET_AMOUNT if it's just ₹10 Add On in a ₹148 combo
+        // Use their cost to compute margin contribution
+        const rowCost = c.fofo_inc * (r._qty || 1);
+        totalMargin += rowRev - rowCost;
+      }
+      if (hasAny) o.margin = totalMargin;
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// FILE SOURCES TRACKING
+// ════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// CHANNEL MAPPER
+// ════════════════════════════════════════════════════════════════
+function showChannelMapper() {
+  const channels = [...new Set(S.rawRows.map(r => r._channel))].filter(Boolean).sort();
+  if (!channels.length) { showErr('Load data first.'); return; }
+  const rows = channels.map(ch => {
+    const current = S.channelTypeMap[ch] || detectChannelType(ch);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <span style="flex:1;font-size:12px">${ch}</span>
+      <select data-channel="${ch}" style="font-size:11px;padding:3px 7px">
+        <option value="pos" ${current==='pos'?'selected':''}>POS / Dine-in</option>
+        <option value="delivery" ${current==='delivery'?'selected':''}>Delivery</option>
+        <option value="unknown" ${current==='unknown'?'selected':''}>Unknown</option>
+      </select>
+    </div>`;
+  }).join('');
+  $('channelMapperRows').innerHTML = rows;
+  $('channelModal').style.display = 'flex';
+}
+
+async function saveChannelMap() {
+  $('channelModal').style.display = 'none';
+  document.querySelectorAll('#channelMapperRows select').forEach(sel => {
+    S.channelTypeMap[sel.dataset.channel] = sel.value;
+  });
+  // Re-enrich all rows with updated channel types
+  S.rawRows.forEach(r => { r._channelType = S.channelTypeMap[r._channel] || detectChannelType(r._channel); });
+  // Rebuild orders
+  showProg('Applying channel mapping...');
+  await yieldF();
+  S.orders = buildOrders(S.rawRows);
+  if (Object.keys(S.costMap).length) computeMargins();
+  applyFiltersInternal();
+  renderAll();
+  hideProg();
+}
+
+function setMarginMode(mode, btn) {
+  S.marginMode = mode;
+  document.querySelectorAll('#tab-margin .tsw-btn[id^="mm"]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  computeMargins();
+  applyFiltersInternal();
+  renderMargin();
+}
+
+function updateFilesBar(type, label, id) {
+  // Remove existing source with same id
+  S.sources = S.sources.filter(s => s.id !== id);
+  S.sources.push({ id, label, type });
+  renderFilesBar();
+}
+
+function renderFilesBar() {
+  const bar = $('filesBar');
+  bar.querySelectorAll('.fpill').forEach(e => e.remove());
+  $('noFilesMsg').style.display = S.sources.length ? 'none' : 'inline';
+  for (const src of S.sources) {
+    const pill = document.createElement('span');
+    pill.className = `fpill ${src.type === 'cost' ? 'cost' : 'data'}`;
+    pill.innerHTML = `${src.type==='cost'?'₹':'📄'} ${src.label} <span class="fpill-x" onclick="removeSource('${src.id}')">×</span>`;
+    bar.appendChild(pill);
+  }
+}
+
+function removeSource(id) {
+  S.sources = S.sources.filter(s => s.id !== id);
+  if (id.startsWith('cost-')) {
+    S.costMap = {}; S.costMatchRate = '';
+    computeMargins();
+    renderFilesBar();
+    updateSummaryBanner();
+    return;
+  }
+  // Remove rows from this source and rebuild
+  S.rawRows = S.rawRows.filter(r => r._sourceId !== id);
+  if (id.startsWith('sheet-')) S.loadedSheetIds.delete(id.replace('sheet-',''));
+  rebuildFromRows();
+  renderFilesBar();
+}
+
+// ════════════════════════════════════════════════════════════════
+// DATA FILE HANDLING
+// ════════════════════════════════════════════════════════════════
+async function handleDataFiles(fileList) {
+  const files = Array.from(fileList);
+  let done = 0;
+  for (const file of files) {
+    showProg(`Reading ${file.name} (${done+1}/${files.length})...`);
+    await yieldF();
+    const rows = await parseFile(file);
+    if (rows) {
+      const id = 'file-' + file.name;
+      rows.forEach(r => r._sourceId = id);
+      S.rawRows.push(...rows);
+      updateFilesBar('data', `${file.name} (${rows.length.toLocaleString()} rows)`, id);
+    }
+    done++;
+  }
+  await rebuildFromRows();
+}
+
+async function parseFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'csv') {
+    return new Promise(resolve => {
+      Papa.parse(file, {
+        header: true, skipEmptyLines: true, worker: true,
+        complete: r => resolve(r.data.map(row => normaliseRow(row, file.name.replace(/\.[^.]+$/,'')))),
+        error: e => { showErr('CSV error: ' + e.message); resolve(null); }
+      });
+    });
+  } else {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    let allRows = [];
+    for (const sheetName of wb.SheetNames) {
+      showProg(`Parsing sheet: "${sheetName}"...`);
+      await yieldF();
+      const ws = wb.Sheets[sheetName];
+      const sheetRows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
+      if (sheetRows.length < 3) continue;
+      const keys = Object.keys(sheetRows[0] || {}).map(k => k.toUpperCase());
+      const isRista = keys.some(k => k.includes('INVOICE') || k.includes('ITEM_NAME') || k.includes('BRANCH') || k.includes('SALE_STATUS'));
+      if (!isRista) continue;
+      allRows.push(...sheetRows.map(row => normaliseRow(row, sheetName)));
+    }
+    return allRows.length ? allRows : null;
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// GOOGLE SHEETS
+// ════════════════════════════════════════════════════════════════
+function extractSheetId(url) {
+  const m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  return m ? m[1] : null;
+}
+
+async function loadSheets() {
+  const url = $('sheetsUrl').value.trim();
+  if (!url) { showErr('Paste a Google Sheets URL first.'); return; }
+  const sheetId = extractSheetId(url);
+  if (!sheetId) { showErr('Invalid URL — needs docs.google.com/spreadsheets/d/...'); return; }
+  if (!S.apiKey) { showErr('Connect your API key first.'); return; }
+  if (S.loadedSheetIds.has(sheetId)) { showErr('This sheet is already loaded.'); return; }
+
+  showProg('Fetching sheet metadata...');
+  try {
+    const metaRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=properties.title,sheets.properties&key=${S.apiKey}`);
+    const meta = await metaRes.json();
+    if (meta.error) {
+      if (meta.error.status === 'PERMISSION_DENIED') throw new Error('Sheet is private. Set sharing to "Anyone with the link can view".');
+      if (meta.error.status === 'NOT_FOUND') throw new Error('Sheet not found. Check the URL.');
+      throw new Error(meta.error.message || 'Could not access sheet. Click ⓘ Setup for help.');
+    }
+
+    const title = meta.properties?.title || sheetId;
+    const tabs = meta.sheets.map(s => s.properties.title);
+    showProg(`"${title}" — fetching ${tabs.length} tabs...`);
+
+    const ranges = tabs.map(t => encodeURIComponent(t));
+    const batchRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values:batchGet?ranges=${ranges.join('&ranges=')}&key=${S.apiKey}`);
+    const batch = await batchRes.json();
+    if (batch.error) throw new Error('Data error: ' + batch.error.message);
+
+    let totalRows = 0; const loadedTabs = [];
+    for (let i = 0; i < (batch.valueRanges||[]).length; i++) {
+      const tabName = tabs[i];
+      const values = batch.valueRanges[i].values || [];
+      if (values.length < 3) continue;
+      const headers = values[0].map(h => String(h).trim());
+      const headersUp = headers.map(h => h.toUpperCase());
+      const isRista = headersUp.some(h => h.includes('INVOICE') || h.includes('ITEM_NAME') || h.includes('BRANCH') || h.includes('SALE_STATUS'));
+      if (!isRista) continue;
+
+      const rows = values.slice(1)
+        .filter(row => row.some(v => String(v).trim()))
+        .map(row => {
+          const raw = { _sheet: tabName };
+          headers.forEach((h, j) => { raw[h] = row[j] !== undefined ? String(row[j]).trim() : ''; });
+          return normaliseRow(raw, tabName);
+        });
+
+      const sourceId = `sheet-${sheetId}-${tabName}`;
+      rows.forEach(r => r._sourceId = sourceId);
+      S.rawRows.push(...rows);
+      totalRows += rows.length;
+      loadedTabs.push(tabName);
+      showProg(`✓ "${tabName}" — ${rows.length.toLocaleString()} rows`);
+      await yieldF();
+    }
+
+    if (!loadedTabs.length) throw new Error('No Rista data tabs found. Check columns include INVOICE_NUMBER, ITEM_NAME, BRANCH_NAME.');
+
+    S.loadedSheetIds.add(sheetId);
+    const sourceId = `sheet-${sheetId}`;
+    updateFilesBar('data', `📊 ${title} · ${loadedTabs.length} tabs · ${totalRows.toLocaleString()} rows`, sourceId);
+    $('sheetsUrl').value = '';
+    await rebuildFromRows();
+
+  } catch(err) {
+    showErr('Sheets Error: ' + err.message);
+    hideProg();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('sheetsUrl')?.addEventListener('keydown', e => { if (e.key === 'Enter') loadSheets(); });
+});
+
+// ════════════════════════════════════════════════════════════════
+// REBUILD — called after any data change
+// ════════════════════════════════════════════════════════════════
+async function rebuildFromRows() {
+  showProg(`Building ${S.rawRows.length.toLocaleString()} rows → orders...`);
+  await yieldF();
+
+  S.orders = buildOrders(S.rawRows);
+  if (Object.keys(S.orders).length === 0) {
+    showErr('No valid orders found. Check that SALE_STATUS and INVOICE_NUMBER columns are present.');
+    hideProg(); return;
+  }
+
+  // If cost map exists, recompute margins
+  if (Object.keys(S.costMap).length) computeMargins();
+
+  showProg('Updating filters...');
+  await yieldF();
+  buildFilterOptions();
+
+  showProg('Applying filters...');
+  await yieldF();
+  applyFiltersInternal();
+
+  updateSummaryBanner();
+
+  showProg('Rendering...');
+  await yieldF();
+  renderAll();
+
+  hideProg();
+  updateAiBtn();
+}
+
+// ════════════════════════════════════════════════════════════════
+// FILTERS
+// ════════════════════════════════════════════════════════════════
+function buildFilterOptions() {
+  const orders = Object.values(S.orders);
+  const stores   = [...new Set(orders.map(o => o.branch))].filter(Boolean).sort();
+  const months   = [...new Set(orders.map(o => o.month))].filter(m => m !== 'Unknown').sort();
+  const channels = [...new Set(orders.map(o => o.channel))].filter(Boolean).sort();
+
+  setMultiSelect('fStore', stores);
+  setMultiSelect('fMonth', months.map(m => ({ val: m, lbl: monthLabel(m) })));
+  setSelect('fChannel', ['All Channels', ...channels]);
+
+  // SvS dropdowns
+  setSelect('svsA', stores); setSelect('svsB', stores);
+  if (stores.length > 1) $('svsB').selectedIndex = 1;
+
+  // Basket category/subcategory selects
+  const cats = [...new Set(S.rawRows.map(r => r._cat))].filter(Boolean).sort();
+  const subs = [...new Set(S.rawRows.map(r => r._subcat))].filter(Boolean).sort();
+  setSelect('bkCatSelect', cats);
+  setSelect('bkSubSelect', subs);
+
+  // Margin simulator category
+  setSelect('simCategory', cats);
+
+  // Swap selects
+  const items = [...new Set(S.rawRows.filter(r => r._type === 'Item').map(r => r._item))].filter(Boolean).sort();
+  setSelect('swapA', items); setSelect('swapB', items);
+  if (items.length > 1) $('swapB').selectedIndex = 1;
+}
+
+function setSelect(id, opts) {
+  const el = $(id); if (!el) return;
+  el.innerHTML = opts.map(o => typeof o === 'object'
+    ? `<option value="${o.val}">${o.lbl}</option>`
+    : `<option value="${o}">${o}</option>`
+  ).join('');
+}
+
+function setMultiSelect(id, opts) {
+  const el = $(id); if (!el) return;
+  el.innerHTML = opts.map(o => typeof o === 'object'
+    ? `<option value="${o.val}">${o.lbl}</option>`
+    : `<option value="${o}">${o}</option>`
+  ).join('');
+  // Select all by default
+  for (const opt of el.options) opt.selected = true;
+}
+
+function getMultiVal(id) {
+  const el = $(id); if (!el) return [];
+  return [...el.selectedOptions].map(o => o.value);
+}
+
+async function applyFilters() {
+  showProg('Filtering...');
+  await yieldF();
+  applyFiltersInternal();
+  showProg('Rendering...');
+  await yieldF();
+  renderAll();
+  hideProg();
+  updateAiBtn();
+}
+
+function applyFiltersInternal() {
+  const stores   = new Set(getMultiVal('fStore'));
+  const months   = new Set(getMultiVal('fMonth'));
+  const channel  = $('fChannel').value;
+  const chanType = $('fChannelType').value;
+  const orderType = $('fOrderType').value;
+  const status   = $('fStatus').value;
+
+  S.filteredOrders = Object.values(S.orders).filter(o => {
+    if (stores.size  && !stores.has(o.branch))  return false;
+    if (months.size  && !months.has(o.month))   return false;
+    if (channel !== 'All Channels' && o.channel !== channel) return false;
+    if (chanType !== 'all' && o.channelType !== chanType)    return false;
+    if (orderType !== 'all' && o.orderType !== orderType)    return false;
+    return true;
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// SUMMARY BANNER
+// ════════════════════════════════════════════════════════════════
+function updateSummaryBanner() {
+  const orders = Object.values(S.orders);
+  if (!orders.length) { $('summaryBanner').classList.remove('vis'); return; }
+
+  const dates = orders.map(o => o.date).filter(Boolean).sort();
+  const weeks = new Set(orders.map(o => o.week).filter(w => w !== 'Unknown'));
+  const stores = new Set(orders.map(o => o.branch));
+
+  $('sb-rows').textContent   = S.rawRows.length.toLocaleString();
+  $('sb-orders').textContent = orders.length.toLocaleString();
+  $('sb-stores').textContent = stores.size;
+  $('sb-range').textContent  = dates.length ? `${dates[0]} → ${dates[dates.length-1]}` : '—';
+  $('sb-weeks').textContent  = weeks.size;
+  $('sb-cost').textContent   = S.costMatchRate || '—';
+  $('summaryBanner').classList.add('vis');
+}
+
+// ════════════════════════════════════════════════════════════════
+// CLEAR ALL
+// ════════════════════════════════════════════════════════════════
+function clearAll() {
+  S.rawRows = []; S.orders = {}; S.filteredOrders = [];
+  S.sources = []; S.costMap = {}; S.costMatchRate = '';
+  S.loadedSheetIds = new Set(); S.basketAnchors = [];
+  renderFilesBar();
+  $('summaryBanner').classList.remove('vis');
+  ['ov','at','bk','st','tr','mg','ai'].forEach(p => {
+    const e = $(p+'-empty'); if (e) e.style.display = 'flex';
+    const c = $(p+'-content'); if (c) c.style.display = 'none';
+  });
+  updateAiBtn();
+}
+
+// ════════════════════════════════════════════════════════════════
+// DRAG & DROP
+// ════════════════════════════════════════════════════════════════
+document.addEventListener('dragover', e => { e.preventDefault(); $('dropOverlay').classList.add('vis'); });
+document.addEventListener('dragleave', e => { if (!e.relatedTarget) $('dropOverlay').classList.remove('vis'); });
+document.addEventListener('drop', e => {
+  e.preventDefault(); $('dropOverlay').classList.remove('vis');
+  if (e.dataTransfer.files.length) handleDataFiles(e.dataTransfer.files);
+});
+
+// ════════════════════════════════════════════════════════════════
+// CHART HELPERS
+// ════════════════════════════════════════════════════════════════
+function lineOpts(yUnit='', currency=false, y2=false) {
+  const base = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { font: { family: 'Barlow', size: 10 }, boxWidth: 10 } } },
+    scales: {
+      x: { ticks: { font: { family: 'JetBrains Mono', size: 8 }, maxRotation: 45 }, grid: { display: false } },
+      y: { ticks: { callback: v => currency ? '₹'+fmt(v) : v.toFixed(1)+yUnit, font: { family: 'JetBrains Mono', size: 8 } }, grid: { color: 'rgba(0,0,0,.05)' } }
+    }
+  };
+  if (y2) {
+    base.scales.y1 = { ...base.scales.y, position: 'right', grid: { display: false } };
+  }
+  return base;
+}
+
+function barOpts(horizontal=false, stacked=false) {
+  return {
+    indexAxis: horizontal ? 'y' : 'x',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: !horizontal, labels: { font: { family: 'Barlow', size: 10 }, boxWidth: 10 } } },
+    scales: {
+      x: { stacked, ticks: { font: { family: 'JetBrains Mono', size: 8 }, maxRotation: horizontal ? 0 : 45 }, grid: { display: false } },
+      y: { stacked, ticks: { font: { family: 'JetBrains Mono', size: 8 } }, grid: { color: 'rgba(0,0,0,.05)' } }
+    }
+  };
+}
+
+// ════════════════════════════════════════════════════════════════
+// ATTACH RATE HELPERS
+// ════════════════════════════════════════════════════════════════
+function attachRate(orders, filterFn) {
+  const total = orders.length;
+  const hit = orders.filter(filterFn).length;
+  return { hit, total, pct: pct(hit, total) };
+}
+
+function itemAttachRates(orders) {
+  const total = orders.length;
+  const imap = {};
+  for (const o of orders) {
+    for (const item of o.allItems) {
+      if (!imap[item]) imap[item] = { hit: 0, cat: '', subcat: '' };
+      imap[item].hit++;
+    }
+  }
+  // Get category from rawRows
+  const catLookup = {};
+  for (const r of S.rawRows) { if (r._item) catLookup[r._item] = { cat: r._cat, subcat: r._subcat }; }
+
+  return Object.entries(imap).map(([item, v]) => ({
+    item, hit: v.hit, total, pct: pct(v.hit, total),
+    cat: catLookup[item]?.cat || '', subcat: catLookup[item]?.subcat || ''
+  })).sort((a,b) => b.pct - a.pct);
+}
+
+function catAttachRates(orders) {
+  const total = orders.length;
+  const cmap = {};
+  for (const o of orders) {
+    for (const cat of o.catSet) {
+      cmap[cat] = (cmap[cat] || 0) + 1;
+    }
+  }
+  return Object.entries(cmap).map(([cat, hit]) => ({ cat, hit, total, pct: pct(hit,total) })).sort((a,b) => b.pct - a.pct);
+}
+
+function subcatAttachRates(orders) {
+  const total = orders.length;
+  const smap = {};
+  for (const o of orders) {
+    for (const sub of o.subcatSet) {
+      if (sub) smap[sub] = (smap[sub] || 0) + 1;
+    }
+  }
+  return Object.entries(smap).map(([sub, hit]) => ({ sub, hit, total, pct: pct(hit,total) })).sort((a,b) => b.pct - a.pct);
+}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER ALL
+// ════════════════════════════════════════════════════════════════
+function renderAll() {
+  const orders = S.filteredOrders;
+  const has = orders.length > 0;
+  ['ov','at','bk','st','tr','mg'].forEach(p => {
+    const e = $(p+'-empty'); if (e) e.style.display = has ? 'none' : 'flex';
+    const c = $(p+'-content'); if (c) c.style.display = has ? 'block' : 'none';
+  });
+  if (!has) return;
+  renderOverview(orders);
+  renderAttach(orders);
+  renderStores(orders);
+  renderTrends(orders);
+  if (Object.keys(S.costMap).length) renderMargin(orders);
+  else { $('mg-empty').style.display = 'flex'; $('mg-content').style.display = 'none'; }
+}
+
+// ════════════════════════════════════════════════════════════════
+// OVERVIEW
+// ════════════════════════════════════════════════════════════════
+function renderOverview(orders) {
+  const total   = orders.length;
+  const netRev  = orders.reduce((s,o) => s+o.net, 0);
+  const aov     = total > 0 ? netRev/total : 0;
+  const bevAtt  = pct(orders.filter(o => o.hasBev).length, total);
+  const comboR  = pct(orders.filter(o => o.orderType === 'combo' || o.orderType === 'mixed').length, total);
+  const soloR   = pct(orders.filter(o => o.orderType === 'solo').length, total);
+  const flagged = orders.filter(o => o.flagMissedBev).length;
+  const hasMar  = orders.some(o => o.margin !== null);
+  const avgMar  = hasMar ? pct(orders.filter(o=>o.margin!==null).reduce((s,o)=>s+o.margin,0), orders.filter(o=>o.margin!==null).reduce((s,o)=>s+o.net,0)) : null;
+
+  $('kpiRow').innerHTML = `
+    <div class="kcard red"><div class="klbl">Orders</div><div class="kval">${total.toLocaleString()}</div><div class="ksub">${[...new Set(orders.map(o=>o.week))].filter(w=>w!=='Unknown').length} weeks</div></div>
+    <div class="kcard green"><div class="klbl">Net Revenue</div><div class="kval">₹${fmt(netRev)}</div><div class="ksub">AOV ₹${Math.round(aov)}</div></div>
+    <div class="kcard blue"><div class="klbl">Bev Attach</div><div class="kval">${bevAtt.toFixed(1)}%</div><div class="ksub">${orders.filter(o=>o.hasBev).length.toLocaleString()} orders</div></div>
+    <div class="kcard yellow"><div class="klbl">Combo Rate</div><div class="kval">${comboR.toFixed(1)}%</div><div class="ksub">${orders.filter(o=>o.orderType==='combo'||o.orderType==='mixed').length.toLocaleString()} orders</div></div>
+    <div class="kcard orange"><div class="klbl">Solo Orders</div><div class="kval">${soloR.toFixed(1)}%</div><div class="ksub kdelta warn">↑ missed upsell</div></div>
+    <div class="kcard ink"><div class="klbl">Missed Bev</div><div class="kval">${flagged.toLocaleString()}</div><div class="ksub kdelta warn">${pct(flagged,total).toFixed(1)}% of orders</div></div>
+    ${hasMar ? `<div class="kcard teal"><div class="klbl">Avg Margin%</div><div class="kval">${avgMar.toFixed(1)}%</div><div class="ksub">FOFO inc-GST</div></div>` : ''}
+    <div class="kcard purple"><div class="klbl">Stores</div><div class="kval">${[...new Set(orders.map(o=>o.branch))].length}</div><div class="ksub">${[...new Set(orders.map(o=>o.channel))].length} channels</div></div>
+  `;
+
+  // Category attach bars
+  const catRates = catAttachRates(orders);
+  $('ov-cat-badge').textContent = total.toLocaleString() + ' orders';
+  renderBarList('ov-cat-bars', catRates.map(c => ({ name: c.cat, pct: c.pct, cnt: c.hit })), '#c8380a');
+
+  // Order type donut
+  const typeMap = { combo: 0, standalone: 0, mixed: 0, solo: 0 };
+  for (const o of orders) typeMap[o.orderType]++;
+  dc('orderTypeChart');
+  S.charts['orderTypeChart'] = new Chart($('orderTypeChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Combo', 'Standalone', 'Mixed', 'Solo'],
+      datasets: [{ data: [typeMap.combo, typeMap.standalone, typeMap.mixed, typeMap.solo],
+        backgroundColor: [col(0,.8), col(1,.8), col(2,.8), col(4,.8)], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { family: 'Barlow', size: 10 }, boxWidth: 10 } } } }
+  });
+
+  // Store summary table
+  renderStoreSummaryTable(orders);
+
+  // Weekly chart
+  const weeks = [...new Set(orders.map(o => o.week).filter(w => w !== 'Unknown'))].sort();
+  const wRev  = weeks.map(w => orders.filter(o => o.week === w).reduce((s,o) => s+o.net, 0));
+  const wOrd  = weeks.map(w => orders.filter(o => o.week === w).length);
+  dc('weeklyChart');
+  S.charts['weeklyChart'] = new Chart($('weeklyChart').getContext('2d'), {
+    data: {
+      labels: weeks,
+      datasets: [
+        { type: 'bar', label: 'Revenue', data: wRev, backgroundColor: col(0,.5), yAxisID: 'y' },
+        { type: 'line', label: 'Orders', data: wOrd, borderColor: col(1), backgroundColor: 'transparent', yAxisID: 'y1', tension: .35, pointRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { family: 'Barlow', size: 10 }, boxWidth: 10 } } },
+      scales: {
+        x: { ticks: { font: { family: 'JetBrains Mono', size: 8 }, maxRotation: 45 }, grid: { display: false } },
+        y: { ticks: { callback: v => '₹'+fmt(v), font: { family: 'JetBrains Mono', size: 8 } }, grid: { color: 'rgba(0,0,0,.05)' } },
+        y1: { position: 'right', ticks: { font: { family: 'JetBrains Mono', size: 8 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  // Channel donut
+  const chanMap = {};
+  for (const o of orders) chanMap[o.channel] = (chanMap[o.channel] || 0) + o.net;
+  const chanEntries = Object.entries(chanMap).sort((a,b) => b[1]-a[1]);
+  dc('channelChart');
+  S.charts['channelChart'] = new Chart($('channelChart').getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: chanEntries.map(([c]) => c), datasets: [{ data: chanEntries.map(([,v]) => v), backgroundColor: chanEntries.map((_,i) => col(i,.8)), borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { family: 'Barlow', size: 10 }, boxWidth: 10 } } } }
+  });
+
+  // Flagged orders by store
+  const stores = [...new Set(orders.map(o => o.branch))].sort();
+  const flagByStore = stores.map(br => pct(orders.filter(o => o.branch === br && o.flagMissedBev).length, orders.filter(o => o.branch === br).length));
+  $('ov-flagged-badge').textContent = flagged + ' flagged';
+  dc('flaggedChart');
+  S.charts['flaggedChart'] = new Chart($('flaggedChart').getContext('2d'), {
+    type: 'bar',
+    data: { labels: stores, datasets: [{ label: 'Missed Bev Upsell %', data: flagByStore, backgroundColor: col(5,.75) }] },
+    options: { ...barOpts(), scales: { x: { ticks: { font: { family: 'JetBrains Mono', size: 8 }, maxRotation: 30 }, grid: { display: false } }, y: { ticks: { callback: v => v.toFixed(0)+'%', font: { family: 'JetBrains Mono', size: 8 } }, grid: { color: 'rgba(0,0,0,.05)' } } } }
+  });
+}
+
+function renderStoreSummaryTable(orders) {
+  const stores = [...new Set(orders.map(o => o.branch))].sort();
+  const thead = $('storeSummaryTbl').querySelector('thead');
+  const tbody = $('storeSummaryTbl').querySelector('tbody');
+  const hasMar = orders.some(o => o.margin !== null);
+  thead.innerHTML = `<tr><th>Store</th><th>Orders</th><th>Revenue</th><th>AOV</th><th>Bev Attach</th><th>Combo Rate</th><th>Solo Rate</th><th>Flagged</th>${hasMar?'<th>Margin%</th>':''}</tr>`;
+  tbody.innerHTML = stores.map(br => {
+    const bo = orders.filter(o => o.branch === br);
+    const bTotal = bo.length;
+    const bRev = bo.reduce((s,o) => s+o.net, 0);
+    const bAov = bTotal ? bRev/bTotal : 0;
+    const bBev = pct(bo.filter(o=>o.hasBev).length, bTotal);
+    const bCombo = pct(bo.filter(o=>o.orderType==='combo'||o.orderType==='mixed').length, bTotal);
+    const bSolo = pct(bo.filter(o=>o.orderType==='solo').length, bTotal);
+    const bFlag = bo.filter(o=>o.flagMissedBev).length;
+    const bMar = hasMar ? pct(bo.filter(o=>o.margin!==null).reduce((s,o)=>s+o.margin,0), bo.filter(o=>o.margin!==null).reduce((s,o)=>s+o.net,0)) : null;
+    return `<tr>
+      <td><strong>${br}</strong></td>
+      <td class="mono">${bTotal.toLocaleString()}</td>
+      <td class="mono">₹${fmt(bRev)}</td>
+      <td class="mono">₹${Math.round(bAov)}</td>
+      <td><span class="tag ${pc(bBev)}">${bBev.toFixed(1)}%</span></td>
+      <td><span class="tag ${pc(bCombo)}">${bCombo.toFixed(1)}%</span></td>
+      <td><span class="tag ${bSolo>30?'red':bSolo>15?'yellow':'green'}">${bSolo.toFixed(1)}%</span></td>
+      <td class="mono">${bFlag} <span style="color:var(--ink3)">(${pct(bFlag,bTotal).toFixed(1)}%)</span></td>
+      ${hasMar?`<td><span class="tag ${bMar!==null?(bMar>30?'green':bMar>15?'yellow':'red'):'grey'}">${bMar!==null?bMar.toFixed(1)+'%':'—'}</span></td>`:''}
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+// BAR LIST RENDERER
+// ════════════════════════════════════════════════════════════════
+function renderBarList(containerId, items, color='#c8380a', maxItems=25) {
+  const el = $(containerId); if (!el) return;
+  const show = items.slice(0, maxItems);
+  const maxP = show.length ? show[0].pct : 1;
+  el.innerHTML = show.map(it => `
+    <div class="abar-item">
+      <div class="abar-row">
+        <span class="abar-name" title="${it.name}">${it.name}</span>
+        <span class="abar-pct" style="color:${it.pct>=40?'var(--green)':it.pct>=20?'var(--yellow)':'var(--red)'}">${it.pct.toFixed(1)}%</span>
+        <span class="abar-cnt">${(it.cnt||0).toLocaleString()}</span>
+      </div>
+      <div class="abar-track"><div class="abar-fill" style="width:${maxP>0?(it.pct/maxP*100):0}%;background:${color}"></div></div>
+    </div>
+  `).join('') || '<div style="color:var(--ink3);font-size:11px;padding:6px 0">No data</div>';
+}
+
+// ════════════════════════════════════════════════════════════════
+// ATTACH RATES TAB
+// ════════════════════════════════════════════════════════════════
+function setAttachView(view, btn) {
+  S.attachView = view;
+  document.querySelectorAll('#tab-attach .tsw-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAttach(S.filteredOrders);
+}
+
+function renderAttach(orders) {
+  let data, labelKey, title;
+  if (S.attachView === 'category') {
+    data = catAttachRates(orders).map(c => ({ name: c.cat, pct: c.pct, cnt: c.hit, extra: '' }));
+    title = 'Category Attach Rates';
+  } else if (S.attachView === 'subcategory') {
+    data = subcatAttachRates(orders).map(c => ({ name: c.sub, pct: c.pct, cnt: c.hit, extra: '' }));
+    title = 'Sub-Category Attach Rates';
+  } else {
+    data = itemAttachRates(orders).map(c => ({ name: c.item, pct: c.pct, cnt: c.hit, extra: c.cat }));
+    title = 'Item Attach Rates';
+  }
+
+  $('at-chart-title').textContent = title;
+  $('at-tbl-title').textContent = `All ${title.split(' ')[0]}s — Table`;
+  $('at-badge').textContent = data.length + ' items';
+
+  // Bar chart (top 20)
+  const top20 = data.slice(0, 20);
+  dc('attachChart');
+  S.charts['attachChart'] = new Chart($('attachChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: top20.map(d => d.name),
+      datasets: [{ label: 'Attach %', data: top20.map(d => +d.pct.toFixed(2)), backgroundColor: top20.map(d => d.pct >= 40 ? col(2,.75) : d.pct >= 20 ? col(4,.75) : col(0,.75)) }]
+    },
+    options: { ...barOpts(true), scales: { x: { ticks: { callback: v => v+'%', font: { family: 'JetBrains Mono', size: 8 } }, grid: { color: 'rgba(0,0,0,.05)' } }, y: { ticks: { font: { family: 'JetBrains Mono', size: 8 } }, grid: { display: false } } } }
+  });
+
+  // Context chart: combo vs standalone breakdown per top 8
+  const top8 = data.slice(0, 8);
+  dc('attachContextChart');
+  S.charts['attachContextChart'] = new Chart($('attachContextChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: top8.map(d => d.name),
+      datasets: [
+        { label: 'In Combo', data: top8.map(d => {
+          const n = d.name;
+          const matchOrders = orders.filter(o => (S.attachView === 'item' ? o.allItems.has(n) : S.attachView === 'category' ? o.catSet.has(n) : o.subcatSet.has(n)));
+          return pct(matchOrders.filter(o => o.orderType === 'combo' || o.orderType === 'mixed').length, matchOrders.length);
+        }), backgroundColor: col(0,.7), stack: 'ctx' },
+        { label: 'Standalone', data: top8.map(d => {
+          const n = d.name;
+          const matchOrders = orders.filter(o => (S.attachView === 'item' ? o.allItems.has(n) : S.attachView === 'category' ? o.catSet.has(n) : o.subcatSet.has(n)));
+          return pct(matchOrders.filter(o => o.orderType === 'standalone').length, matchOrders.length);
+        }), backgroundColor: col(1,.7), stack: 'ctx' },
+        { label: 'Solo', data: top8.map(d => {
+          const n = d.name;
+          const matchOrders = orders.filter(o => (S.attachView === 'item' ? o.allItems.has(n) : S.attachView === 'category' ? o.catSet.has(n) : o.subcatSet.has(n)));
+          return pct(matchOrders.filter(o => o.orderType === 'solo').length, matchOrders.length);
+        }), backgroundColor: col(4,.7), stack: 'ctx' },
+      ]
+    },
+    options: { ...barOpts(true, true), scales: { x: { stacked: true, ticks: { callback: v => v+'%', font: { family: 'JetBrains Mono', size: 8 } }, grid: { color: 'rgba(0,0,0,.05)' } }, y: { stacked: true, ticks: { font: { family: 'JetBrains Mono', size: 8 } }, grid: { display: false } } } }
+  });
+
+  // Table
+  renderAttachTable(data);
+
+  // Search
+  $('attachSearch').oninput = function() {
+    const q = this.value.toLowerCase();
+    renderAttachTable(data.filter(d => d.name.toLowerCase().includes(q)));
+  };
+}
+
+function renderAttachTable(data) {
+  const hasMar = S.filteredOrders.some(o => o.margin !== null);
+  const thead = $('attachTbl').querySelector('thead');
+  const tbody = $('attachTbl').querySelector('tbody');
+  thead.innerHTML = `<tr><th>#</th><th>Name</th>${S.attachView !== 'category' ? '<th>Category</th>' : ''}<th>Attach%</th><th>Orders</th><th>Revenue</th>${hasMar?'<th>Avg Margin%</th>':''}</tr>`;
+  tbody.innerHTML = data.map((d,i) => {
+    // Revenue for this item/cat
+    let rev = 0;
+    for (const r of S.rawRows) {
+      if (S.attachView === 'item' && r._item === d.name) rev += r._net;
+      else if (S.attachView === 'category' && r._cat === d.name) rev += r._net;
+      else if (S.attachView === 'subcategory' && r._subcat === d.name) rev += r._net;
+    }
+    return `<tr>
+      <td class="mono" style="color:var(--ink3)">${i+1}</td>
+      <td><strong>${d.name}</strong></td>
+      ${S.attachView !== 'category' ? `<td><span class="tag grey">${d.extra||'—'}</span></td>` : ''}
+      <td><span class="tag ${pc(d.pct)}">${d.pct.toFixed(1)}%</span></td>
+      <td class="mono">${d.cnt.toLocaleString()}</td>
+      <td class="mono">₹${fmt(rev)}</td>
+      ${hasMar?'<td class="mono">—</td>':''}
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+// BASKET ANALYSIS
+// ════════════════════════════════════════════════════════════════
+function renderBasketControls() {
+  S.basketMode = $('bkMode').value;
+  $('bkItemPicker').style.display  = S.basketMode === 'item'        ? 'flex' : 'none';
+  $('bkCatPicker').style.display   = S.basketMode === 'category'    ? 'flex' : 'none';
+  $('bkSubPicker').style.display   = S.basketMode === 'subcategory' ? 'flex' : 'none';
+}
+
+function bkSearchItems(q) {
+  const dd = $('bkItemDD');
+  if (!q) { dd.style.display = 'none'; return; }
+  const items = [...new Set(S.rawRows.map(r => r._item))].filter(i => i && i.toLowerCase().includes(q.toLowerCase()) && !S.basketAnchors.includes(i)).slice(0, 14);
+  if (!items.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = items.map(i => `<div style="padding:6px 10px;cursor:pointer;font-size:12px" onmousedown="addBasketAnchor('${i.replace(/'/g,"\\'")}')">${i}</div>`).join('');
+  dd.style.display = 'block';
+}
+function closeBkDD() { const d = $('bkItemDD'); if (d) d.style.display = 'none'; }
+function addBasketAnchor(item) {
+  if (!S.basketAnchors.includes(item)) S.basketAnchors.push(item);
+  $('bkItemSearch').value = '';
+  closeBkDD();
+  renderBkChips();
+}
+function removeBkAnchor(item) {
+  S.basketAnchors = S.basketAnchors.filter(i => i !== item);
+  renderBkChips();
+}
+function renderBkChips() {
+  const wrap = $('bkChips');
+  wrap.innerHTML = S.basketAnchors.map((item, i) => `
+    <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;background:${col(i,.1)};border:1px solid ${col(i,.4)};color:${col(i)};font-size:11px">
+      ${item} <span style="cursor:pointer;opacity:.7" onmousedown="removeBkAnchor('${item.replace(/'/g,"\\'")}')" >×</span>
+    </span>
+  `).join('') || '<span style="font-family:var(--mono);font-size:9px;color:var(--ink3)">No anchors selected</span>';
+}
+function clearBasket() {
+  S.basketAnchors = [];
+  renderBkChips();
+  $('bkItemSearch').value = '';
+  $('bk-results').style.display = 'none';
+  $('bk-anchor-badge').textContent = 'No anchor selected';
+}
+
+function runBasket() {
+  const orders = S.filteredOrders;
+  const mode = $('bkMode').value;
+  const logic = $('bkLogic').value;
+
+  // Determine anchor label and filter function
+  let anchorLabel, anchorFn;
+  if (mode === 'item') {
+    if (!S.basketAnchors.length) { showErr('Add at least one item to the anchor.'); return; }
+    anchorLabel = S.basketAnchors.join(logic === 'AND' ? ' AND ' : ' OR ');
+    anchorFn = o => logic === 'AND'
+      ? S.basketAnchors.every(item => o.allItems.has(item))
+      : S.basketAnchors.some(item => o.allItems.has(item));
+  } else if (mode === 'category') {
+    const cat = $('bkCatSelect').value;
+    anchorLabel = `Category: ${cat}`;
+    anchorFn = o => o.catSet.has(cat);
+  } else {
+    const sub = $('bkSubSelect').value;
+    anchorLabel = `Sub-Category: ${sub}`;
+    anchorFn = o => o.subcatSet.has(sub);
+  }
+
+  const anchorOrders = orders.filter(anchorFn);
+  const totalOrders  = orders.length;
+  const anchorTotal  = anchorOrders.length;
+
+  if (anchorTotal === 0) { showErr(`No orders found matching: ${anchorLabel}`); return; }
+
+  $('bk-anchor-badge').textContent = `${anchorLabel} · ${anchorTotal.toLocaleString()} orders (${pct(anchorTotal,totalOrders).toFixed(1)}%)`;
+  $('bk-results').style.display = 'block';
+
+  // Store for MoM re-render
+  _bkLastAnchorFn = anchorFn;
+  _bkLastAnchorLabel = anchorLabel;
+  renderBkMoM();
+
+  // KPIs
+  const anchorRev  = anchorOrders.reduce((s,o) => s+o.net, 0);
+  const nonAnchor  = orders.filter(o => !anchorFn(o));
+  const anchorAov  = anchorTotal ? anchorRev/anchorTotal : 0;
+  const nonAov     = nonAnchor.length ? nonAnchor.reduce((s,o)=>s+o.net,0)/nonAnchor.length : 0;
+  const comboInAnc = pct(anchorOrders.filter(o=>o.orderType==='combo'||o.orderType==='mixed').length, anchorTotal);
+  const soloInAnc  = pct(anchorOrders.filter(o=>o.orderType==='solo').length, anchorTotal);
+  const flagInAnc  = anchorOrders.filter(o=>o.flagMissedBev).length;
+  const hasMar     = anchorOrders.some(o=>o.margin!==null);
+  const anchorMar  = hasMar ? pct(anchorOrders.filter(o=>o.margin!==null).reduce((s,o)=>s+o.margin,0), anchorOrders.filter(o=>o.margin!==null).reduce((s,o)=>s+o.net,0)) : null;
+
+  $('bk-kpi-row').innerHTML = `
+    <div class="kcard red"><div class="klbl">Anchor Orders</div><div class="kval">${anchorTotal.toLocaleString()}</div><div class="ksub">${pct(anchorTotal,totalOrders).toFixed(1)}% of all</div></div>
+    <div class="kcard green"><div class="klbl">Anchor Revenue</div><div class="kval">₹${fmt(anchorRev)}</div><div class="ksub">AOV ₹${Math.round(anchorAov)}</div></div>
+    <div class="kcard blue"><div class="klbl">AOV vs non-anchor</div><div class="kval">${anchorAov > nonAov ? '+' : ''}${Math.round(anchorAov - nonAov).toLocaleString()}</div><div class="ksub kdelta ${anchorAov>nonAov?'up':'dn'}">Non-anchor: ₹${Math.round(nonAov)}</div></div>
+    <div class="kcard yellow"><div class="klbl">Combo Rate</div><div class="kval">${comboInAnc.toFixed(1)}%</div><div class="ksub">in anchor orders</div></div>
+    <div class="kcard orange"><div class="klbl">Solo Rate</div><div class="kval">${soloInAnc.toFixed(1)}%</div><div class="ksub">${anchorOrders.filter(o=>o.orderType==='solo').length} orders</div></div>
+    ${hasMar ? `<div class="kcard teal"><div class="klbl">Avg Margin%</div><div class="kval">${anchorMar!==null?anchorMar.toFixed(1)+'%':'—'}</div><div class="ksub">FOFO inc-GST</div></div>` : `<div class="kcard ink"><div class="klbl">Missed Bev</div><div class="kval">${flagInAnc}</div><div class="ksub">${pct(flagInAnc,anchorTotal).toFixed(1)}% of anchor</div></div>`}
+  `;
+
+  // Order context breakdown
+  const ctxCombo    = anchorOrders.filter(o=>o.orderType==='combo'||o.orderType==='mixed').length;
+  const ctxSaAddon  = anchorOrders.filter(o=>o.orderType==='standalone' && [...o.addonSet].some(i=>mode==='item'?S.basketAnchors.includes(i):true)).length;
+  const ctxSaItem   = anchorOrders.filter(o=>o.orderType==='standalone' && [...o.itemSet].some(i=>mode==='item'?S.basketAnchors.includes(i):true)).length;
+  const ctxSolo     = anchorOrders.filter(o=>o.orderType==='solo').length;
+
+  dc('bkContextChart');
+  S.charts['bkContextChart'] = new Chart($('bkContextChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['In Combo', 'Standalone + Add On', 'Standalone + Item', 'Solo'],
+      datasets: [{ data: [ctxCombo, ctxSaAddon, ctxSaItem, ctxSolo], backgroundColor: [col(0,.8),col(1,.8),col(2,.8),col(4,.8)], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { family: 'Barlow', size: 10 }, boxWidth: 10 } } } }
+  });
+
+  // Flags
+  const flags = [];
+  if (mode === 'item' || mode === 'category') {
+    // Bev flags
+    const isBevAnchor = mode === 'item' ? S.basketAnchors.some(i => isBevRow({_cat:'',_item:i})) : $('bkCatSelect').value.toLowerCase().includes('bev');
+    const isFriesAnchor = mode === 'item' ? S.basketAnchors.some(i => isFriesRow({_cat:'',_item:i})) : $('bkCatSelect').value.toLowerCase().includes('fries');
+    if (isBevAnchor) {
+      const inComboP = pct(ctxCombo, anchorTotal);
+      const withFriesNoOtherBev = anchorOrders.filter(o => o.hasFries && !o.hasBev).length;
+      flags.push({ type: 'blue', msg: `${inComboP.toFixed(1)}% of these bev orders are part of combo orders` });
+      if (withFriesNoOtherBev > 0) flags.push({ type: 'yellow', msg: `${withFriesNoOtherBev} orders (${pct(withFriesNoOtherBev,anchorTotal).toFixed(1)}%) had fries but no additional bev — combo upsell opportunity` });
+    }
+    if (isFriesAnchor) {
+      const optionFries = anchorOrders.filter(o => [...o.optionSet].some(i => isFriesRow({_cat:'',_item:i}))).length;
+      const noBev = anchorOrders.filter(o => !o.hasBev).length;
+      flags.push({ type: 'blue', msg: `${pct(optionFries,anchorTotal).toFixed(1)}% of these fries were ₹0 Option rows (included in combos)` });
+      if (noBev > 0) flags.push({ type: 'red', msg: `${noBev} fries orders (${pct(noBev,anchorTotal).toFixed(1)}%) had NO beverage — missed bev upsell` });
+    }
+  }
+  flags.push({ type: 'ink', msg: `AOV of anchor orders is ₹${Math.round(anchorAov)} vs ₹${Math.round(nonAov)} for non-anchor orders (${anchorAov>nonAov?'higher ✓':'lower ↓'})` });
+
+  $('bkFlags').innerHTML = flags.map(f => `
+    <div style="padding:9px 12px;border-radius:6px;border-left:3px solid var(--${f.type});background:var(--${f.type}2||var(--bg2));font-size:12px;line-height:1.5;color:var(--ink2)">
+      ${f.msg}
+    </div>
+  `).join('') || '<div style="color:var(--ink3);font-size:12px">No specific flags for this anchor</div>';
+
+  // Co-occurring items (excluding anchor items)
+  const anchorItemSet = new Set(mode === 'item' ? S.basketAnchors : []);
+  const coMap = {};
+  for (const o of anchorOrders) {
+    for (const item of o.allItems) {
+      if (anchorItemSet.has(item)) continue;
+      if (mode === 'category' && o.catSet.has($('bkCatSelect').value) && S.rawRows.find(r=>r._item===item&&r._cat===$('bkCatSelect').value)) continue;
+      if (!coMap[item]) coMap[item] = { hit: 0, cat: '' };
+      coMap[item].hit++;
+    }
+  }
+  const catLookup = {};
+  for (const r of S.rawRows) if (r._item) catLookup[r._item] = r._cat;
+  const coItems = Object.entries(coMap).map(([item, v]) => ({ name: item, pct: pct(v.hit, anchorTotal), cnt: v.hit, extra: catLookup[item]||'' })).sort((a,b) => b.pct-a.pct);
+  $('bk-coitem-badge').textContent = coItems.length + ' items';
+  renderBarList('bkCoItemBars', coItems, '#174f7a', 25);
+
+  // Co-occurring categories
+  const coCatMap = {};
+  for (const o of anchorOrders) {
+    for (const cat of o.catSet) {
+      if (mode === 'category' && cat === $('bkCatSelect').value) continue;
+      coCatMap[cat] = (coCatMap[cat]||0) + 1;
+    }
+  }
+  const coCats = Object.entries(coCatMap).map(([cat, hit]) => ({ name: cat, pct: pct(hit, anchorTotal), cnt: hit })).sort((a,b) => b.pct-a.pct);
+  renderBarList('bkCoCatBars', coCats, '#1e6e3a', 15);
+
+  // Full co-attach table
+  const hasCostData = S.filteredOrders.some(o => o.margin !== null);
+  $('bk-full-badge').textContent = coItems.length + ' co-items';
+  const tfull = $('bkFullTbl');
+  tfull.querySelector('thead').innerHTML = `<tr><th>#</th><th>Item</th><th>Category</th><th>Co-Attach%</th><th>Orders Together</th><th>Revenue</th></tr>`;
+  tfull.querySelector('tbody').innerHTML = coItems.map((it,i) => {
+    const rev = S.rawRows.filter(r => r._item === it.name).reduce((s,r)=>s+r._net,0);
+    return `<tr>
+      <td class="mono" style="color:var(--ink3)">${i+1}</td>
+      <td><strong>${it.name}</strong></td>
+      <td><span class="tag grey">${it.extra||'—'}</span></td>
+      <td><span class="tag ${pc(it.pct)}">${it.pct.toFixed(1)}%</span></td>
+      <td class="mono">${it.cnt.toLocaleString()}</td>
+      <td class="mono">₹${fmt(rev)}</td>
+    </tr>`;
+  }).join('');
+
+  // Weekly trend for anchor + top 4 co-items
+  const weeks = [...new Set(orders.map(o=>o.week).filter(w=>w!=='Unknown'))].sort();
+  const top4Co = coItems.slice(0,4);
+  dc('bkTrendChart');
+  S.charts['bkTrendChart'] = new Chart($('bkTrendChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: weeks,
+      datasets: [
+        { label: anchorLabel.slice(0,30), data: weeks.map(w => { const wo=anchorOrders.filter(o=>o.week===w); const all=orders.filter(o=>o.week===w); return pct(wo.length,all.length); }), borderColor: col(0), backgroundColor: col(0,.1), fill: true, tension: .35, pointRadius: 3, borderWidth: 2 },
+        ...top4Co.map((it,i) => ({
+          label: it.name.slice(0,25),
+          data: weeks.map(w => { const wo=anchorOrders.filter(o=>o.week===w&&o.allItems.has(it.name)); return pct(wo.length, anchorOrders.filter(o=>o.week===w).length); }),
+          borderColor: col(i+1), backgroundColor: 'transparent', tension: .35, pointRadius: 3, borderWidth: 1.5
+        }))
+      ]
+    },
+    options: lineOpts('%')
+  });
+
+  // Store breakdown
+  const storesTbl = $('bkStoreTbl');
+  const stores = [...new Set(orders.map(o=>o.branch))].sort();
+  storesTbl.querySelector('thead').innerHTML = `<tr><th>Store</th><th>Anchor Orders</th><th>Attach%</th><th>AOV</th><th>Combo%</th><th>Missed Bev%</th></tr>`;
+  storesTbl.querySelector('tbody').innerHTML = stores.map(br => {
+    const bOrd = orders.filter(o=>o.branch===br);
+    const bAnc = bOrd.filter(anchorFn);
+    const bPct = pct(bAnc.length, bOrd.length);
+    const bAov = bAnc.length ? bAnc.reduce((s,o)=>s+o.net,0)/bAnc.length : 0;
+    const bCombo = pct(bAnc.filter(o=>o.orderType==='combo'||o.orderType==='mixed').length, bAnc.length);
+    const bFlag = pct(bAnc.filter(o=>o.flagMissedBev).length, bAnc.length);
+    return `<tr>
+      <td><strong>${br}</strong></td>
+      <td class="mono">${bAnc.length.toLocaleString()}</td>
+      <td><span class="tag ${pc(bPct)}">${bPct.toFixed(1)}%</span></td>
+      <td class="mono">₹${Math.round(bAov)}</td>
+      <td><span class="tag ${pc(bCombo)}">${bCombo.toFixed(1)}%</span></td>
+      <td><span class="tag ${bFlag>20?'red':bFlag>10?'yellow':'green'}">${bFlag.toFixed(1)}%</span></td>
+    </tr>`;
+  }).join('');
+  // Store for MoM re-render
+  S._bkAnchorFn    = anchorFn;
+  S._bkAnchorLabel = anchorLabel;
+  S._bkTopCoItem   = coItems[0]?.name || null;
+
+  // MoM chart
+  $('bk-mom-badge').textContent = months.length + ' months · ' + stores.length + ' stores';
+  renderBkMoM();
+}
+
+function renderBkMoM() {
+  if (!S._bkAnchorFn) return;
+  const orders  = S.filteredOrders;
+  const months  = [...new Set(orders.map(o=>o.month).filter(m=>m!=='Unknown'))].sort();
+  const stores  = [...new Set(orders.map(o=>o.branch))].sort();
+  const metric  = $('bkMomMetric').value;
+  const anchorFn = S._bkAnchorFn;
+
+  function getVal(storeMonthOrders) {
+    const ancOrds = storeMonthOrders.filter(anchorFn);
+    const t = storeMonthOrders.length;
+    const at = ancOrds.length;
+    if (metric === 'attach')   return pct(at, t);
+    if (metric === 'aov')      return at ? ancOrds.reduce((s,o)=>s+o.net,0)/at : 0;
+    if (metric === 'combo')    return pct(ancOrds.filter(o=>o.orderType==='combo'||o.orderType==='mixed').length, at);
+    if (metric === 'coattach') {
+      if (!S._bkTopCoItem) return 0;
+      return pct(ancOrds.filter(o=>o.allItems.has(S._bkTopCoItem)).length, at);
+    }
+    return 0;
+  }
+
+  const metricLabels = {
+    attach: `Anchor Attach%`,
+    aov: `AOV of Anchor Orders (₹)`,
+    combo: `Combo Rate within Anchor (%)`,
+    coattach: `Co-attach% of "${(S._bkTopCoItem||'top item').slice(0,20)}"`
+  };
+  const isCurrency = metric === 'aov';
+
+  dc('bkMomChart');
+  S.charts['bkMomChart'] = new Chart($('bkMomChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: months.map(m => monthLabel(m)),
+      datasets: stores.map((br, i) => ({
+        label: br,
+        data: months.map(m => +getVal(orders.filter(o=>o.branch===br&&o.month===m)).toFixed(1)),
+        backgroundColor: col(i, 0.7),
+        borderColor: col(i),
+        borderWidth: 1,
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { family:'Barlow', size:10 }, boxWidth:10 } } },
+      scales: {
+        x: { ticks: { font: { family:'JetBrains Mono', size:9 } }, grid: { display:false } },
+        y: {
+          ticks: { callback: v => isCurrency ? '₹'+fmt(v) : v.toFixed(1)+'%', font: { family:'JetBrains Mono', size:9 } },
+          grid: { color: 'rgba(0,0,0,.05)' },
+          title: { display:true, text: metricLabels[metric], font:{ family:'JetBrains Mono', size:8 } }
+        }
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// STORES
+// ════════════════════════════════════════════════════════════════
+function renderStores() {
+  const orders = S.filteredOrders;
+  if (!orders.length) return;
+  const stA = $('svsA').value;
+  const stB = $('svsB').value;
+  const metric = $('svsMetric').value;
+
+  const metricLabels = { bev:'Bev Attach%', sides:'Sides Attach%', combo:'Combo Rate%', solo:'Solo Rate%', aov:'AOV ₹', revenue:'Revenue ₹' };
+  $('svs-title').textContent = `${metricLabels[metric]} — ${stA} vs ${stB}`;
+
+  function getMetricVal(storeOrders, w) {
+    const wo = storeOrders.filter(o => o.week === w);
+    const t = wo.length;
+    if (metric === 'bev')     return pct(wo.filter(o=>o.hasBev).length, t);
+    if (metric === 'sides')   return pct(wo.filter(o=>o.hasFries).length, t);
+    if (metric === 'combo')   return pct(wo.filter(o=>o.orderType==='combo'||o.orderType==='mixed').length, t);
+    if (metric === 'solo')    return pct(wo.filter(o=>o.orderType==='solo').length, t);
+    if (metric === 'revenue') return wo.reduce((s,o)=>s+o.net,0);
+    if (metric === 'aov')     return t ? wo.reduce((s,o)=>s+o.net,0)/t : 0;
+    return 0;
+  }
+
+  const weeks = [...new Set(orders.map(o=>o.week).filter(w=>w!=='Unknown'))].sort();
+  const ordA = orders.filter(o=>o.branch===stA);
+  const ordB = orders.filter(o=>o.branch===stB);
+  const isCurrency = ['revenue','aov'].includes(metric);
+
+  dc('svsChart');
+  S.charts['svsChart'] = new Chart($('svsChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: weeks,
+      datasets: [
+        { label: stA, data: weeks.map(w=>getMetricVal(ordA,w)), borderColor: col(0), backgroundColor: col(0,.1), fill: true, tension: .35, pointRadius: 3, borderWidth: 2 },
+        { label: stB, data: weeks.map(w=>getMetricVal(ordB,w)), borderColor: col(1), backgroundColor: col(1,.1), fill: true, tension: .35, pointRadius: 3, borderWidth: 2 }
+      ]
+    },
+    options: lineOpts(isCurrency?'₹':'%', isCurrency)
+  });
+
+  // Head-to-head table
+  function storeStat(ord) {
+    const t = ord.length; const rev = ord.reduce((s,o)=>s+o.net,0);
+    return {
+      orders: t, rev, aov: t?rev/t:0,
+      bev: pct(ord.filter(o=>o.hasBev).length,t),
+      sides: pct(ord.filter(o=>o.hasFries).length,t),
+      combo: pct(ord.filter(o=>o.orderType==='combo'||o.orderType==='mixed').length,t),
+      solo: pct(ord.filter(o=>o.orderType==='solo').length,t),
+      flag: pct(ord.filter(o=>o.flagMissedBev).length,t),
+    };
+  }
+  const sA = storeStat(ordA), sB = storeStat(ordB);
+  const rows2 = [
+    ['Orders', sA.orders.toLocaleString(), sB.orders.toLocaleString(), null],
+    ['Revenue', '₹'+fmt(sA.rev), '₹'+fmt(sB.rev), sA.rev > sB.rev ? stA : stB],
+    ['AOV', '₹'+Math.round(sA.aov), '₹'+Math.round(sB.aov), sA.aov > sB.aov ? stA : stB],
+    ['Bev Attach', sA.bev.toFixed(1)+'%', sB.bev.toFixed(1)+'%', sA.bev > sB.bev ? stA : stB],
+    ['Sides Attach', sA.sides.toFixed(1)+'%', sB.sides.toFixed(1)+'%', sA.sides > sB.sides ? stA : stB],
+    ['Combo Rate', sA.combo.toFixed(1)+'%', sB.combo.toFixed(1)+'%', sA.combo > sB.combo ? stA : stB],
+    ['Solo Rate', sA.solo.toFixed(1)+'%', sB.solo.toFixed(1)+'%', sA.solo < sB.solo ? stA : stB],
+    ['Missed Bev%', sA.flag.toFixed(1)+'%', sB.flag.toFixed(1)+'%', sA.flag < sB.flag ? stA : stB],
+  ];
+  $('svsTbl').querySelector('thead').innerHTML = `<tr><th>Metric</th><th style="color:${col(0)}">${stA}</th><th style="color:${col(1)}">${stB}</th><th>Better</th></tr>`;
+  $('svsTbl').querySelector('tbody').innerHTML = rows2.map(([m,a,b,w]) =>
+    `<tr><td style="color:var(--ink3)">${m}</td><td class="mono" style="color:${col(0)};font-weight:600">${a}</td><td class="mono" style="color:${col(1)};font-weight:600">${b}</td><td style="font-size:11px">${w?`<span class="tag ${w===stA?'red':'blue'}">${w}</span>`:'—'}</td></tr>`
+  ).join('');
+
+  // Category mix chart A vs B
+  const cats = [...new Set(S.rawRows.map(r=>r._cat))].filter(Boolean).sort();
+  const revA = ordA.reduce((s,o)=>s+o.net,0);
+  const revB = ordB.reduce((s,o)=>s+o.net,0);
+  const catRevA = cats.map(c => S.rawRows.filter(r=>r._branch===stA&&r._cat===c).reduce((s,r)=>s+r._net,0));
+  const catRevB = cats.map(c => S.rawRows.filter(r=>r._branch===stB&&r._cat===c).reduce((s,r)=>s+r._net,0));
+  dc('svsCatChart');
+  S.charts['svsCatChart'] = new Chart($('svsCatChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: cats,
+      datasets: [
+        { label: stA, data: cats.map((_,i) => revA > 0 ? +(catRevA[i]/revA*100).toFixed(1) : 0), backgroundColor: col(0,.7) },
+        { label: stB, data: cats.map((_,i) => revB > 0 ? +(catRevB[i]/revB*100).toFixed(1) : 0), backgroundColor: col(1,.7) }
+      ]
+    },
+    options: { ...barOpts(), scales: { x: { ticks: { font: { family: 'JetBrains Mono', size: 8 }, maxRotation: 30 }, grid: { display: false } }, y: { ticks: { callback: v=>v+'%', font: { family: 'JetBrains Mono', size: 8 } }, grid: { color: 'rgba(0,0,0,.05)' } } } }
+  });
+
+  // Item-level diff table
+  const itemRatesA = Object.fromEntries(itemAttachRates(ordA).map(i=>[i.item,i.pct]));
+  const itemRatesB = Object.fromEntries(itemAttachRates(ordB).map(i=>[i.item,i.pct]));
+  const allItems2 = [...new Set([...Object.keys(itemRatesA),...Object.keys(itemRatesB)])];
+  const diffs = allItems2.map(item => ({ item, pctA: itemRatesA[item]||0, pctB: itemRatesB[item]||0, delta: (itemRatesA[item]||0)-(itemRatesB[item]||0) }))
+    .filter(d => Math.abs(d.delta) >= 10)
+    .sort((a,b) => Math.abs(b.delta)-Math.abs(a.delta));
+  $('svsItemTbl').querySelector('thead').innerHTML = `<tr><th>Item</th><th style="color:${col(0)}">${stA} Attach%</th><th style="color:${col(1)}">${stB} Attach%</th><th>Delta</th><th>Signal</th></tr>`;
+  $('svsItemTbl').querySelector('tbody').innerHTML = diffs.map(d => `<tr>
+    <td>${d.item}</td>
+    <td><span class="tag ${pc(d.pctA)}">${d.pctA.toFixed(1)}%</span></td>
+    <td><span class="tag ${pc(d.pctB)}">${d.pctB.toFixed(1)}%</span></td>
+    <td class="mono" style="color:${d.delta>0?col(0):col(1)};font-weight:600">${d.delta>0?'+':''}${d.delta.toFixed(1)}%</td>
+    <td style="font-size:11px">${d.delta > 0 ? `<span class="tag red">↑ ${stA}</span>` : `<span class="tag blue">↑ ${stB}</span>`}</td>
+  </tr>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+// TRENDS
+// ════════════════════════════════════════════════════════════════
+function renderTrends(orders) {
+  const weeks = [...new Set(orders.map(o=>o.week).filter(w=>w!=='Unknown'))].sort();
+  const cats  = [...new Set(S.rawRows.map(r=>r._cat))].filter(Boolean).sort();
+  const stores = [...new Set(orders.map(o=>o.branch))].sort();
+
+  // Cat attach trend (top 6)
+  const catRatesAll = catAttachRates(orders);
+  const top6Cats = catRatesAll.slice(0,6).map(c=>c.cat);
+  dc('trendCatChart');
+  S.charts['trendCatChart'] = new Chart($('trendCatChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: weeks,
+      datasets: top6Cats.map((cat,i) => ({
+        label: cat,
+        data: weeks.map(w => { const wo=orders.filter(o=>o.week===w); return pct(wo.filter(o=>o.catSet.has(cat)).length,wo.length); }),
+        borderColor: col(i), backgroundColor: col(i,.06), fill: false, tension: .35, pointRadius: 3, borderWidth: 2
+      }))
+    },
+    options: lineOpts('%')
+  });
+
+  // Revenue mix stacked area (top 6 cats)
+  dc('trendMixChart');
+  S.charts['trendMixChart'] = new Chart($('trendMixChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: weeks,
+      datasets: top6Cats.map((cat,i) => ({
+        label: cat,
+        data: weeks.map(w => {
+          const wRows = S.rawRows.filter(r => r._week === w);
+          const wTot = wRows.reduce((s,r)=>s+r._net,0);
+          return wTot ? +( wRows.filter(r=>r._cat===cat).reduce((s,r)=>s+r._net,0) / wTot * 100 ).toFixed(1) : 0;
+        }),
+        backgroundColor: col(i,.8), stack: 'mix'
+      }))
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { family: 'Barlow', size: 10 }, boxWidth: 10 } } }, scales: { x: { stacked: true, ticks: { font: { family: 'JetBrains Mono', size: 8 }, maxRotation: 45 }, grid: { display: false } }, y: { stacked: true, max: 100, ticks: { callback: v=>v+'%', font: { family: 'JetBrains Mono', size: 8 } }, grid: { color: 'rgba(0,0,0,.05)' } } } }
+  });
+
+  // Bev attach by store weekly
+  dc('trendStoreBevChart');
+  S.charts['trendStoreBevChart'] = new Chart($('trendStoreBevChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: weeks,
+      datasets: stores.map((br,i) => ({
+        label: br,
+        data: weeks.map(w => { const wo=orders.filter(o=>o.branch===br&&o.week===w); return pct(wo.filter(o=>o.hasBev).length,wo.length); }),
+        borderColor: col(i), backgroundColor: 'transparent', fill: false, tension: .35, pointRadius: 3, borderWidth: 2
+      }))
+    },
+    options: lineOpts('%')
+  });
+
+  // Anomaly detection
+  const anomMetrics = [
+    { key: 'bev', label: 'Bev Attach', fn: o => o.hasBev },
+    { key: 'solo', label: 'Solo Rate', fn: o => o.orderType === 'solo' },
+    { key: 'flag', label: 'Missed Bev', fn: o => o.flagMissedBev },
+    { key: 'vol', label: 'Order Volume', fn: o => true },
+  ];
+
+  const zData = {};
+  const anomalies = [];
+  for (const m of anomMetrics) {
+    const vals = weeks.map(w => {
+      const wo = orders.filter(o=>o.week===w);
+      return m.key === 'vol' ? wo.length : pct(wo.filter(m.fn).length, wo.length);
+    });
+    const mean = vals.reduce((s,v)=>s+v,0)/vals.length;
+    const std  = Math.sqrt(vals.reduce((s,v)=>s+Math.pow(v-mean,2),0)/vals.length);
+    zData[m.label] = vals.map(v => std > 0 ? +((v-mean)/std).toFixed(2) : 0);
+    if (std < 0.3) continue;
+    vals.forEach((v,i) => {
+      const z = std > 0 ? (v-mean)/std : 0;
+      if (Math.abs(z) >= 1.8) anomalies.push({ week: weeks[i], metric: m.label, value: v, mean, z, type: z>0?'spike':'drop' });
+    });
+  }
+
+  // Z-score heatmap
+  const zLabels = Object.keys(zData);
+  const heatRows = zLabels.map(lbl => {
+    const cells = zData[lbl].map(z => {
+      const abs = Math.abs(z);
+      const bg = z > 0 ? `rgba(30,110,58,${Math.min(abs/2.5,.8)})` : `rgba(184,42,30,${Math.min(abs/2.5,.8)})`;
+      const tc = abs > 1 ? '#fff' : 'var(--ink)';
+      return `<td style="background:${bg};color:${tc};padding:4px 7px;text-align:center;font-family:var(--mono);font-size:9px;border:1px solid var(--border)">${z.toFixed(1)}</td>`;
+    }).join('');
+    return `<tr><td style="padding:4px 10px;font-size:11px;white-space:nowrap;border:1px solid var(--border)">${lbl}</td>${cells}</tr>`;
+  }).join('');
+  $('zHeatWrap').innerHTML = `<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%"><thead><tr><th style="background:var(--bg2);padding:5px 10px;font-family:var(--mono);font-size:8px;text-transform:uppercase;color:var(--ink3)">Metric</th>${weeks.map(w=>`<th style="background:var(--bg2);padding:5px 7px;font-family:var(--mono);font-size:8px;text-transform:uppercase;color:var(--ink3);white-space:nowrap">${w}</th>`).join('')}</tr></thead><tbody>${heatRows}</tbody></table><div style="font-family:var(--mono);font-size:8px;color:var(--ink3);margin:6px 10px">Green=above avg · Red=below avg · |Z|≥1.8 flagged</div></div>`;
+
+  // Anomaly cards
+  $('tr-anom-badge').textContent = anomalies.length;
+  $('tr-anom-list').innerHTML = anomalies.length === 0
+    ? '<div style="color:var(--ink3);font-size:12px">✅ No significant anomalies detected</div>'
+    : anomalies.map(a => `<div style="padding:9px 12px;border-radius:6px;border-left:3px solid ${a.type==='spike'?'var(--green)':'var(--red)'};background:${a.type==='spike'?'var(--green2)':'var(--red2)'};margin-bottom:7px;font-size:12px;line-height:1.5">
+      <strong style="color:${a.type==='spike'?'var(--green)':'var(--red)'}">${a.type==='spike'?'↑ Spike':'↓ Drop'} — ${a.metric} · ${a.week}</strong><br>
+      Observed: <strong>${a.value.toFixed(1)}${a.metric.includes('Vol')?'':' %'}</strong> vs avg ${a.mean.toFixed(1)}${a.metric.includes('Vol')?'':' %'} · Z = ${a.z.toFixed(2)}
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARGIN
+// ════════════════════════════════════════════════════════════════
+function renderMargin() {
+  const orders = S.filteredOrders.filter(o => o.margin !== null);
+  if (!orders.length) return;
+
+  // KPIs
+  const totalRev = orders.reduce((s,o)=>s+o.net,0);
+  const totalMar = orders.reduce((s,o)=>s+o.margin,0);
+  const avgMarPct = pct(totalMar, totalRev);
+  const negOrders = orders.filter(o=>o.margin<0).length;
+  const fofoVsCoco = Object.keys(S.costMap).length > 0 ? (() => {
+    let fofoT=0, cocoT=0, cnt=0;
+    for (const r of S.rawRows) {
+      const c = getCost(r._item, r._channelType);
+      if (c && c.fofo_inc > 0 && c.coco_inc > 0) { fofoT+=c.fofo_inc; cocoT+=c.coco_inc; cnt++; }
+    }
+    return cnt > 0 ? { fofo: fofoT/cnt, coco: cocoT/cnt, brand: (fofoT-cocoT)/cnt } : null;
+  })() : null;
+
+  $('mg-kpi-row').innerHTML = `
+    <div class="kcard green"><div class="klbl">Avg Margin%</div><div class="kval">${avgMarPct.toFixed(1)}%</div><div class="ksub">FOFO inc-GST</div></div>
+    <div class="kcard red"><div class="klbl">Total Margin</div><div class="kval">₹${fmt(totalMar)}</div><div class="ksub">on ₹${fmt(totalRev)} revenue</div></div>
+    <div class="kcard ${negOrders>0?'red':'green'}"><div class="klbl">Negative Margin Orders</div><div class="kval">${negOrders.toLocaleString()}</div><div class="ksub">${pct(negOrders,orders.length).toFixed(1)}%</div></div>
+    ${fofoVsCoco ? `<div class="kcard blue"><div class="klbl">Avg FOFO Cost</div><div class="kval">₹${fofoVsCoco.fofo.toFixed(0)}</div><div class="ksub">vs COCO ₹${fofoVsCoco.coco.toFixed(0)}</div></div>` : ''}
+    ${fofoVsCoco ? `<div class="kcard purple"><div class="klbl">Brand Margin/Item</div><div class="kval">₹${fofoVsCoco.brand.toFixed(0)}</div><div class="ksub">FOFO − COCO inc-GST</div></div>` : ''}
+  `;
+  $('mg-content').style.display = 'block';
+  $('mg-empty').style.display = 'none';
+
+  // Margin by category
+  const cats = [...new Set(S.rawRows.map(r=>r._cat))].filter(Boolean);
+  const catMar = cats.map(cat => {
+    let rev=0, cost=0, cnt=0;
+    for (const r of S.rawRows.filter(r2=>r2._cat===cat)) {
+      const c = getCost(r._item, r._channelType);
+      if (c && c.fofo_inc > 0) { rev += r._net; cost += c.fofo_inc * (r._qty||1); cnt++; }
+    }
+    return { cat, marPct: rev > 0 ? pct(rev-cost, rev) : 0 };
+  }).filter(c=>c.marPct!==0).sort((a,b)=>b.marPct-a.marPct);
+
+  dc('mgCatChart');
+  S.charts['mgCatChart'] = new Chart($('mgCatChart').getContext('2d'), {
+    type: 'bar',
+    data: { labels: catMar.map(c=>c.cat), datasets: [{ label: 'Margin%', data: catMar.map(c=>+c.marPct.toFixed(1)), backgroundColor: catMar.map(c => c.marPct>30?col(2,.75):c.marPct>15?col(4,.75):col(0,.75)) }] },
+    options: { ...barOpts(true), scales: { x: { ticks: { callback: v=>v+'%', font: { family: 'JetBrains Mono', size: 8 } }, grid: { color: 'rgba(0,0,0,.05)' } }, y: { ticks: { font: { family: 'JetBrains Mono', size: 8 } }, grid: { display: false } } } }
+  });
+
+  // Margin by store
+  const stores = [...new Set(orders.map(o=>o.branch))].sort();
+  const storeMar = stores.map(br => {
+    const bo = orders.filter(o=>o.branch===br);
+    return { br, marPct: pct(bo.reduce((s,o)=>s+o.margin,0), bo.reduce((s,o)=>s+o.net,0)) };
+  });
+  dc('mgStoreChart');
+  S.charts['mgStoreChart'] = new Chart($('mgStoreChart').getContext('2d'), {
+    type: 'bar',
+    data: { labels: storeMar.map(s=>s.br), datasets: [{ label: 'Margin%', data: storeMar.map(s=>+s.marPct.toFixed(1)), backgroundColor: storeMar.map(s=>s.marPct>30?col(2,.75):s.marPct>15?col(4,.75):col(0,.75)) }] },
+    options: { ...barOpts(), scales: { x: { ticks: { font: { family: 'JetBrains Mono', size: 8 }, maxRotation: 30 }, grid: { display: false } }, y: { ticks: { callback: v=>v+'%', font: { family: 'JetBrains Mono', size: 8 } }, grid: { color: 'rgba(0,0,0,.05)' } } } }
+  });
+
+  // Scatter: Revenue vs Margin% — by category, quadrant, log scale
+  const catLookup2 = {};
+  for (const r of S.rawRows) if (r._item) catLookup2[r._item] = r._cat;
+
+  // Build per-item stats using filtered orders for revenue context
+  const itemStats = {};
+  for (const r of S.rawRows) {
+    const ct = S.channelTypeMap[r._channel] || detectChannelType(r._channel);
+    const c = getCost(r._item, ct);
+    if (!c || c.fofo_inc === 0) continue;
+    if (!itemStats[r._item]) itemStats[r._item] = { rev:0, cost:0, cnt:0, cat: catLookup2[r._item]||'Other' };
+    itemStats[r._item].rev  += r._net;
+    itemStats[r._item].cost += c.fofo_inc * (r._qty||1);
+    itemStats[r._item].cnt++;
+  }
+
+  const allCats2 = [...new Set(Object.values(itemStats).map(d=>d.cat))].sort();
+  const scatterData = Object.entries(itemStats).map(([item, d]) => ({
+    x: Math.log10(Math.max(d.rev, 1)),   // log scale to spread items
+    xRaw: d.rev,
+    y: d.rev > 0 ? pct(d.rev - d.cost, d.rev) : 0,
+    r: Math.max(5, Math.min(20, Math.sqrt(d.cnt) * 3)),
+    label: item, cat: d.cat,
+    quadrant: d.rev > 0 ? (pct(d.rev-d.cost,d.rev) >= 25 ? (d.rev >= 50000 ? 'star' : 'gem') : (d.rev >= 50000 ? 'watch' : 'cut')) : 'cut'
+  })).filter(d => d.xRaw > 0);
+
+  // Group by category for separate datasets (different colors = different categories)
+  const catDatasets = allCats2.map((cat, i) => ({
+    label: cat,
+    data: scatterData.filter(d => d.cat === cat),
+    backgroundColor: col(i, 0.65),
+    borderColor: col(i, 0.9),
+    borderWidth: 1,
+  }));
+
+  // Median rev and margin for quadrant lines
+  const revVals = scatterData.map(d=>d.xRaw).sort((a,b)=>a-b);
+  const marVals = scatterData.map(d=>d.y).sort((a,b)=>a-b);
+  const medRevLog = revVals.length ? Math.log10(revVals[Math.floor(revVals.length/2)]) : 3;
+  const medMar    = marVals.length ? marVals[Math.floor(marVals.length/2)] : 25;
+
+  $('mgScatterInfo').textContent = `${scatterData.length} items · median margin ${medMar.toFixed(0)}%`;
+
+  dc('mgScatterChart');
+  S.charts['mgScatterChart'] = new Chart($('mgScatterChart').getContext('2d'), {
+    type: 'bubble',
+    data: { datasets: catDatasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { family:'Barlow', size:9 }, boxWidth:9 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const d = ctx.raw;
+              return `${d.label} | Rev ₹${fmt(d.xRaw)} | Margin ${d.y.toFixed(1)}%`;
+            }
+          }
+        },
+        // Quadrant background via annotation plugin (fallback to manual)
+      },
+      scales: {
+        x: {
+          title: { display:true, text:'Revenue (log scale)', font:{ family:'JetBrains Mono',size:9 } },
+          ticks: { callback: v => '₹'+fmt(Math.pow(10,v)), font:{ family:'JetBrains Mono',size:8 } },
+          grid: { color: 'rgba(0,0,0,.05)' }
+        },
+        y: {
+          title: { display:true, text:'Margin %', font:{ family:'JetBrains Mono',size:9 } },
+          ticks: { callback: v=>v.toFixed(0)+'%', font:{ family:'JetBrains Mono',size:8 } },
+          grid: { color: 'rgba(0,0,0,.05)' }
+        }
+      }
+    }
+  });
+
+  // Store item data for sortable table
+  S._scatterItems = Object.entries(itemStats).map(([item, d]) => ({
+    item, cat: d.cat, rev: d.rev,
+    marPct: d.rev > 0 ? pct(d.rev-d.cost,d.rev) : 0,
+    cnt: d.cnt,
+    fofo: d.cost / Math.max(d.cnt,1),
+    coco: (() => { const c2 = getCost(item,'all'); return c2?.coco_inc||0; })(),
+    brand: (() => { const c2 = getCost(item,'all'); return c2 ? c2.fofo_inc - c2.coco_inc : 0; })(),
+    selling: (() => { const c2 = getCost(item,'all'); return c2?.selling_price||0; })(),
+    quadrant: d.rev >= 50000 && d.rev > 0 && pct(d.rev-d.cost,d.rev) >= medMar ? 'star'
+            : d.rev < 50000  && pct(d.rev-d.cost,d.rev) >= medMar ? 'gem'
+            : d.rev >= 50000 ? 'watch' : 'cut',
+  }));
+
+  sortScatterTable('margin', $('scatterSortMargin'));
+
+  runSwap();
+  runSimulator();
+}
+
+const QUAD_LABELS = { star:'⭐ Star', gem:'💎 Hidden Gem', watch:'⚠️ Watch', cut:'✂️ Cut?' };
+const QUAD_TAG    = { star:'green', gem:'blue', watch:'yellow', cut:'red' };
+
+function sortScatterTable(by, btn) {
+  if (!S._scatterItems) return;
+  document.querySelectorAll('#tab-margin .tsw-btn[id^="scatterSort"]').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  const sorted = [...S._scatterItems].sort((a,b) => {
+    if (by==='margin')   return b.marPct - a.marPct;
+    if (by==='revenue')  return b.rev - a.rev;
+    if (by==='quadrant') {
+      const order = { star:0, gem:1, watch:2, cut:3 };
+      return (order[a.quadrant]||3) - (order[b.quadrant]||3);
+    }
+    return 0;
+  });
+
+  const tbl = $('mgItemTbl');
+  tbl.querySelector('thead').innerHTML = '<tr><th>Quadrant</th><th>Item</th><th>Category</th><th>Revenue</th><th>Margin%</th><th>FOFO Cost</th><th>COCO Cost</th><th>Brand Margin</th><th>Selling Price</th></tr>';
+  tbl.querySelector('tbody').innerHTML = sorted.map(r => `<tr>
+    <td><span class="tag ${QUAD_TAG[r.quadrant]}">${QUAD_LABELS[r.quadrant]}</span></td>
+    <td><strong>${r.item}</strong></td>
+    <td><span class="tag grey">${r.cat||'—'}</span></td>
+    <td class="mono">₹${fmt(r.rev)}</td>
+    <td><span class="tag ${r.marPct>30?'green':r.marPct>15?'yellow':'red'}">${r.marPct.toFixed(1)}%</span></td>
+    <td class="mono">${r.fofo>0?'₹'+r.fofo.toFixed(2):'—'}</td>
+    <td class="mono">${r.coco>0?'₹'+r.coco.toFixed(2):'—'}</td>
+    <td class="mono" style="color:${r.brand>0?'var(--green)':'var(--red)'}">${r.brand!==0?'₹'+r.brand.toFixed(2):'—'}</td>
+    <td class="mono">${r.selling>0?'₹'+r.selling.toFixed(2):'—'}</td>
+  </tr>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+// BASKET MoM TREND
+// ════════════════════════════════════════════════════════════════
+// Called from runBasket — stores context for re-render on metric change
+let _bkLastAnchorFn = null;
+let _bkLastAnchorLabel = '';
+
+function renderBkMoM() {
+  if (!_bkLastAnchorFn) return;
+  const orders = S.filteredOrders;
+  const months = [...new Set(orders.map(o=>o.month).filter(m=>m!=='Unknown'))].sort();
+  const stores = [...new Set(orders.map(o=>o.branch))].sort();
+  const metric = $('bkMomMetric')?.value || 'attach';
+  const metricLabel = { attach:'Attach%', aov:'AOV ₹', combo:'Combo Rate%', coattach:'Top Co-item Co-attach%' }[metric];
+
+  $('bk-mom-badge').textContent = `${months.map(monthLabel).join(' · ')}`;
+
+  // Get top co-item (for coattach metric)
+  let topCoItem = null;
+  if (metric === 'coattach') {
+    const anchorOrders = orders.filter(_bkLastAnchorFn);
+    const coMap = {};
+    for (const o of anchorOrders) {
+      for (const item of o.allItems) {
+        if (S.basketAnchors.includes(item)) continue;
+        coMap[item] = (coMap[item]||0) + 1;
+      }
+    }
+    topCoItem = Object.entries(coMap).sort((a,b)=>b[1]-a[1])[0]?.[0];
+  }
+
+  dc('bkMomChart');
+  S.charts['bkMomChart'] = new Chart($('bkMomChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: months.map(monthLabel),
+      datasets: stores.map((br, i) => ({
+        label: br,
+        data: months.map(m => {
+          const mo = orders.filter(o=>o.branch===br&&o.month===m);
+          const ancMo = mo.filter(_bkLastAnchorFn);
+          const t = mo.length; const a = ancMo.length;
+          if (!t) return null;
+          if (metric==='attach')   return pct(a, t);
+          if (metric==='aov')      return a ? ancMo.reduce((s,o)=>s+o.net,0)/a : null;
+          if (metric==='combo')    return a ? pct(ancMo.filter(o=>o.orderType==='combo'||o.orderType==='mixed').length,a) : null;
+          if (metric==='coattach' && topCoItem) return a ? pct(ancMo.filter(o=>o.allItems.has(topCoItem)).length,a) : null;
+          return null;
+        }),
+        borderColor: col(i), backgroundColor: col(i,.1), fill: false,
+        tension: .3, pointRadius: 5, borderWidth: 2,
+        spanGaps: true,
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font:{ family:'Barlow',size:10 }, boxWidth:10 } }, title: { display: topCoItem && metric==='coattach', text: `Co-attach of "${topCoItem}" in anchor orders`, font:{ family:'Barlow',size:10 } } },
+      scales: {
+        x: { ticks:{ font:{ family:'JetBrains Mono',size:9 } }, grid:{ display:false } },
+        y: { ticks:{ callback: v => metric==='aov' ? '₹'+fmt(v) : v.toFixed(1)+'%', font:{ family:'JetBrains Mono',size:9 } }, grid:{ color:'rgba(0,0,0,.05)' } }
+      }
+    }
+  });
+}
+
+let swapMode = 'replace';
+function setSwapMode(mode, btn) {
+  swapMode = mode;
+  document.querySelectorAll('#tab-margin .tsw-btn[id^="swapMode"]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  runSwap();
+}
+
+function runSwap() {
+  const itemA = $('swapA')?.value;
+  const itemB = $('swapB')?.value;
+  const el = $('swapResult');
+  if (!itemA || !itemB || itemA === itemB) { el.innerHTML = '<span style="color:var(--ink3)">Select two different items</span>'; return; }
+
+  const orders = S.filteredOrders;
+  const aOrders = orders.filter(o => o.allItems.has(itemA));
+  const N = aOrders.length;
+  if (!N) { el.innerHTML = `<span style="color:var(--ink3)">No orders found with "${itemA}"</span>`; return; }
+
+  const cA = getCost(itemA, 'all'), cB = getCost(itemB, 'all');
+  const avgPriceA = S.rawRows.filter(r=>r._item===itemA).reduce((s,r)=>s+r._net,0) / Math.max(S.rawRows.filter(r=>r._item===itemA).length,1);
+  const avgPriceB = S.rawRows.filter(r=>r._item===itemB).reduce((s,r)=>s+r._net,0) / Math.max(S.rawRows.filter(r=>r._item===itemB).length,1);
+  const costA = cA?.fofo_inc || 0;
+  const costB = cB?.fofo_inc || 0;
+  const marA = avgPriceA - costA;
+  const marB = avgPriceB - costB;
+
+  if (swapMode === 'replace') {
+    const revDelta = N * (avgPriceB - avgPriceA);
+    const marDelta = N * (marB - marA);
+    el.innerHTML = `Replacing <strong>${itemA}</strong> → <strong>${itemB}</strong> across <strong>${N.toLocaleString()} orders</strong>:<br>
+      Revenue: <strong style="color:${revDelta>=0?'var(--green)':'var(--red)'}">${revDelta>=0?'+':''}₹${fmt(Math.abs(revDelta))}</strong> &nbsp;|&nbsp;
+      Margin: <strong style="color:${marDelta>=0?'var(--green)':'var(--red)'}">${marDelta>=0?'+':''}₹${fmt(Math.abs(marDelta))}</strong><br>
+      <span style="font-size:11px;color:var(--ink3)">Avg price ${itemA}: ₹${avgPriceA.toFixed(0)} · ${itemB}: ₹${avgPriceB.toFixed(0)} &nbsp;|&nbsp; Margin/unit ${itemA}: ₹${marA.toFixed(0)} · ${itemB}: ₹${marB.toFixed(0)}</span>`;
+  } else {
+    const revUplift = N * avgPriceB;
+    const marUplift = N * marB;
+    el.innerHTML = `Adding <strong>${itemB}</strong> alongside <strong>${itemA}</strong> in <strong>${N.toLocaleString()} orders</strong>:<br>
+      Additional Revenue: <strong style="color:var(--green)">+₹${fmt(revUplift)}</strong> &nbsp;|&nbsp;
+      Additional Margin: <strong style="color:${marUplift>=0?'var(--green)':'var(--red)'}">+₹${fmt(Math.abs(marUplift))}</strong><br>
+      <span style="font-size:11px;color:var(--ink3)">At ₹${avgPriceB.toFixed(0)}/unit avg price · ₹${marB.toFixed(0)} margin/unit for ${itemB}</span>`;
+  }
+}
+
+function runSimulator() {
+  const cat = $('simCategory')?.value;
+  const target = parseFloat($('simTarget')?.value) || 60;
+  const el = $('simResult');
+  if (!cat) return;
+
+  const orders = S.filteredOrders;
+  const total = orders.length;
+  const currentHit = orders.filter(o => o.catSet.has(cat)).length;
+  const currentPct = pct(currentHit, total);
+  if (target <= currentPct) { el.innerHTML = `<span style="color:var(--ink3)">Target (${target}%) is at or below current attach (${currentPct.toFixed(1)}%). Increase the slider.</span>`; return; }
+
+  const additionalOrders = Math.round((target - currentPct) / 100 * total);
+  const catRows = S.rawRows.filter(r => r._cat === cat);
+  const avgRev = catRows.length ? catRows.reduce((s,r)=>s+r._net,0)/catRows.length : 0;
+  const revUplift = additionalOrders * avgRev;
+
+  // Margin calc if cost available
+  let marUplift = null, avgMar = null;
+  if (Object.keys(S.costMap).length) {
+    let totRev=0, totCost=0, cnt=0;
+    for (const r of catRows) {
+      const c = getCost(r._item, r._channelType);
+      if (c && c.fofo_inc > 0) { totRev+=r._net; totCost+=c.fofo_inc*(r._qty||1); cnt++; }
+    }
+    if (cnt > 0) { avgMar = (totRev-totCost)/cnt; marUplift = additionalOrders * avgMar; }
+  }
+
+  el.innerHTML = `Increasing <strong>${cat}</strong> attach from <strong>${currentPct.toFixed(1)}% → ${target}%</strong>:<br>
+    +<strong>${additionalOrders.toLocaleString()}</strong> additional orders with ${cat} per period<br>
+    Revenue uplift: <strong style="color:var(--green)">+₹${fmt(revUplift)}</strong> &nbsp;|&nbsp;
+    ${marUplift !== null ? `Margin uplift: <strong style="color:var(--green)">+₹${fmt(marUplift)}</strong>` : '<span style="color:var(--ink3)">Upload cost file for margin uplift</span>'}<br>
+    <span style="font-size:11px;color:var(--ink3)">Avg ${cat} revenue/order: ₹${avgRev.toFixed(0)}${avgMar !== null ? ` · Avg margin/order: ₹${avgMar.toFixed(0)}` : ''}</span>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// AI BRIEFING (Gemini)
+// ════════════════════════════════════════════════════════════════
+async function runAI() {
+  if (!S.apiKey || !S.filteredOrders.length) return;
+  showTab('ai');
+  $('ai-empty').style.display = 'none';
+  $('ai-content').style.display = 'block';
+  $('aiOutput').innerHTML = `<div style="display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.4);font-family:var(--mono);font-size:11px"><div class="dots"><span></span><span></span><span></span></div> Gemini is reading your data...</div>`;
+
+  const orders = S.filteredOrders;
+  const total = orders.length;
+  const netRev = orders.reduce((s,o)=>s+o.net,0);
+  const aov = total ? netRev/total : 0;
+  const stores = [...new Set(orders.map(o=>o.branch))].sort();
+  const months = [...new Set(orders.map(o=>o.month))].filter(m=>m!=='Unknown').sort();
+
+  const catRates = catAttachRates(orders).slice(0,10).map(c=>`${c.cat}: ${c.pct.toFixed(1)}%`).join(', ');
+  const storeSummary = stores.map(br => {
+    const bo = orders.filter(o=>o.branch===br);
+    return `${br}: ${bo.length} orders, ₹${fmt(bo.reduce((s,o)=>s+o.net,0))}, Bev ${pct(bo.filter(o=>o.hasBev).length,bo.length).toFixed(1)}%, Combo ${pct(bo.filter(o=>o.orderType==='combo'||o.orderType==='mixed').length,bo.length).toFixed(1)}%, Solo ${pct(bo.filter(o=>o.orderType==='solo').length,bo.length).toFixed(1)}%`;
+  }).join('\n');
+  const monthSummary = months.map(m => {
+    const mo = orders.filter(o=>o.month===m);
+    return `${monthLabel(m)}: ${mo.length} orders, ₹${fmt(mo.reduce((s,o)=>s+o.net,0))}, Bev ${pct(mo.filter(o=>o.hasBev).length,mo.length).toFixed(1)}%`;
+  }).join('\n');
+  const flagged = orders.filter(o=>o.flagMissedBev).length;
+  const hasMar = orders.some(o=>o.margin!==null);
+  const avgMar = hasMar ? pct(orders.filter(o=>o.margin!==null).reduce((s,o)=>s+o.margin,0), orders.filter(o=>o.margin!==null).reduce((s,o)=>s+o.net,0)) : null;
+
+  const prompt = `Burger Singh POS data analysis. Be direct, specific, no fluff. CoS briefing a founder.
+
+OVERVIEW: ${total.toLocaleString()} orders · ₹${fmt(netRev)} revenue · AOV ₹${Math.round(aov)} · ${months.length} months · ${stores.length} stores
+PERIODS: ${months.map(monthLabel).join(', ')}
+
+ORDER TYPES: Combo ${pct(orders.filter(o=>o.orderType==='combo'||o.orderType==='mixed').length,total).toFixed(1)}% · Standalone ${pct(orders.filter(o=>o.orderType==='standalone').length,total).toFixed(1)}% · Solo ${pct(orders.filter(o=>o.orderType==='solo').length,total).toFixed(1)}%
+
+CATEGORY ATTACH RATES: ${catRates}
+BEV ATTACH: ${pct(orders.filter(o=>o.hasBev).length,total).toFixed(1)}%
+MISSED BEV UPSELL (burger+fries, no bev): ${flagged.toLocaleString()} orders (${pct(flagged,total).toFixed(1)}%)
+${hasMar ? `AVG MARGIN: ${avgMar.toFixed(1)}% (FOFO inc-GST)` : ''}
+
+STORE BREAKDOWN:
+${storeSummary}
+
+MONTHLY TREND:
+${monthSummary}
+
+Write a structured briefing:
+1. 🔑 Headline Numbers
+2. 🥤 Beverage Attach — health, gaps, opportunities
+3. 🎯 Order Type Analysis — combo vs standalone vs solo, what it means
+4. ⚠️ Key Risks — missed upsells, solo rate, any store lagging badly
+5. 🏪 Store Comparison — who leads, who lags, biggest gap
+${hasMar ? '6. ₹ Margin Signals — category and store margin observations\n' : ''}
+${hasMar ? '7.' : '6.'} 💡 Top 5 Recommendations — specific, prioritised, actionable
+
+Use ₹ for currency. Numbers only where precise. Max 600 words.`;
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${S.apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: 'You are a sharp QSR analyst for Burger Singh. Use ₹. Be specific. Write like a CoS briefing a founder. Format with emoji headers.' }] },
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 1200, temperature: 0.4 }
+      })
+    });
+    const data = await res.json();
+    if (data.error) { showErr('Gemini error: ' + data.error.message); return; }
+    $('aiOutput').textContent = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response received.';
+  } catch(err) {
+    showErr('Network error: ' + err.message);
+  }
+}
+</script>
+</body>
+</html>
